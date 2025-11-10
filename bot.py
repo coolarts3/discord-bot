@@ -21,7 +21,7 @@ async def on_member_join(member):
     if channel:
         embed = discord.Embed(
             title="🎉 ¡𝓑𝓘𝓔𝓝𝓥𝓔𝓝𝓘𝓓𝓞 𝓐 𝓛𝓞𝓢 𝓒𝓗𝓐𝓒𝓐𝓛𝓘𝓣𝓞𝓢! 🎉",
-            description=f"Hola {<#1436710363881275402>} {member.mention}, bienvenido a **{member.guild.name}** 👋",
+            description=f"Hola <#1436710363881275402> {member.mention}, bienvenido a **{member.guild.name}** 👋",
             color=discord.Color.red()
         )
         embed.set_image(url="https://i.imgur.com/tuGIF.gif")
@@ -131,6 +131,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
