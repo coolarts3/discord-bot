@@ -52,11 +52,17 @@ async def on_member_join(member):
 # ----------------------------
 @bot.command()
 async def play(ctx, *, query):
-    ydl_opts = {
-        'format': 'bestaudio',
-        'cookiefile': 'cookies.txt',  # tu archivo de cookies
-    }
     """Busca la canción en Spotify y la reproduce en Discord"""
+
+    # Configuración de yt-dlp (cookies + formato + opciones)
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'quiet': True,
+        'cookiefile': './cookies.txt',  # asegúrate de que esté en la raíz del proyecto
+        'noplaylist': True,
+        'source_address': '0.0.0.0'
+    }
+
     # Buscar la canción en Spotify
     results = spotify.search(q=query, type="track", limit=1)
     if not results['tracks']['items']:
@@ -66,22 +72,22 @@ async def play(ctx, *, query):
     track = results['tracks']['items'][0]
     song_name = track['name']
     artist = track['artists'][0]['name']
-    await ctx.send(f"Buscando y reproduciendo: {song_name} de {artist}")
+    await ctx.send(f"🎶 Buscando y reproduciendo: **{song_name}** de **{artist}**")
 
     # Buscar la misma canción en YouTube
     search_query = f"{song_name} {artist} audio"
-    ydl_opts = {'format': 'bestaudio', 'noplaylist': True}
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(f"ytsearch:{search_query}", download=False)['entries'][0]
+        search_results = ydl.extract_info(f"ytsearch:{search_query}", download=False)
+        info = search_results['entries'][0]
         url = info['url']
 
     # Conectarse al canal de voz y reproducir
     if ctx.author.voice:
         voice_channel = ctx.author.voice.channel
         vc = await voice_channel.connect()
-        vc.play(discord.FFmpegPCMAudio(url, executable=FFMPEG_PATH))
+        vc.play(discord.FFmpegPCMAudio(url, executable=ffmpeg_path))
     else:
-        await ctx.send("Necesitas estar en un canal de voz para reproducir música.")
+        await ctx.send("⚠️ Necesitas estar en un canal de voz para reproducir música.")
 
 # Comando para desconectarse
 @bot.command()
@@ -135,6 +141,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
