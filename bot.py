@@ -50,4 +50,5 @@ async def ban(ctx, member: discord.Member, *, reason="No especificado"):
     await ctx.send(f"🔨 {member} ha sido baneado. Motivo: {reason}")
 
 # --- Ejecutar bot ---
-bot.run("TU_TOKEN_AQUI")
+
+bot.run("MTQzNzMzNzYwMjgxNzUyMzc0NA.GUQwRX.AGiua3VY_seTnuAi5Fd971YvMnNsOkq30OX8wc")
