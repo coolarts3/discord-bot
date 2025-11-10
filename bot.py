@@ -1,9 +1,20 @@
 import discord
 from discord.ext import commands
 from discord import FFmpegPCMAudio
-from yt_dlp import YoutubeDL
+import yt_dlp
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
 import os
 import imageio_ffmpeg as ffmpeg
+
+SPOTIFY_CLIENT_ID = "TU_SPOTIFY_CLIENT_ID"
+SPOTIFY_CLIENT_SECRET = "TU_SPOTIFY_CLIENT_SECRET"
+
+# Configuración de Spotify
+spotify = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
+    client_id=SPOTIFY_CLIENT_ID,
+    client_secret=SPOTIFY_CLIENT_SECRET
+))
 
 ffmpeg_path = ffmpeg.get_ffmpeg_exe()
 print("FFmpeg path:", ffmpeg_path)
@@ -36,61 +47,42 @@ async def on_member_join(member):
 # COMANDO DE MÚSICA
 # ----------------------------
 @bot.command()
-async def join(ctx):
-    if ctx.author.voice:
-        channel = ctx.author.voice.channel
-        if ctx.voice_client is None:
-            await channel.connect()
-            await ctx.send(f"✅ Me he unido al canal: {channel.name}")
-        else:
-            await ctx.send("Ya estoy en un canal de voz.")
-    else:
-        await ctx.send("❌ Debes estar en un canal de voz primero.")
+async def play(ctx, *, query):
+    """Busca la canción en Spotify y la reproduce en Discord"""
+    # Buscar la canción en Spotify
+    results = spotify.search(q=query, type="track", limit=1)
+    if not results['tracks']['items']:
+        await ctx.send("No encontré la canción en Spotify.")
+        return
 
+    track = results['tracks']['items'][0]
+    song_name = track['name']
+    artist = track['artists'][0]['name']
+    await ctx.send(f"Buscando y reproduciendo: {song_name} de {artist}")
+
+    # Buscar la misma canción en YouTube
+    search_query = f"{song_name} {artist} audio"
+    ydl_opts = {'format': 'bestaudio', 'noplaylist': True}
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(f"ytsearch:{search_query}", download=False)['entries'][0]
+        url = info['url']
+
+    # Conectarse al canal de voz y reproducir
+    if ctx.author.voice:
+        voice_channel = ctx.author.voice.channel
+        vc = await voice_channel.connect()
+        vc.play(discord.FFmpegPCMAudio(url, executable=FFMPEG_PATH))
+    else:
+        await ctx.send("Necesitas estar en un canal de voz para reproducir música.")
+
+# Comando para desconectarse
 @bot.command()
 async def leave(ctx):
     if ctx.voice_client:
         await ctx.voice_client.disconnect()
-        await ctx.send("👋 Me he desconectado del canal de voz.")
+        await ctx.send("Me he desconectado del canal de voz.")
     else:
-        await ctx.send("❌ No estoy conectado a ningún canal de voz.")
-
-@bot.command()
-async def play(ctx, url: str):
-    if ctx.author.voice is None:
-        await ctx.send("❌ Debes estar en un canal de voz primero.")
-        return
-
-    channel = ctx.author.voice.channel
-
-    # Conectarse al canal
-    if ctx.voice_client is None:
-        vc = await channel.connect()
-    else:
-        vc = ctx.voice_client
-
-    # Opciones de yt-dlp
-    ydl_opts = {
-    'format': 'bestaudio',
-    'cookiefile': 'cookies.txt',  # Exportadas desde tu navegador
-}
-
-    # Extraer audio con manejo de errores
-    try:
-        from yt_dlp import YoutubeDL
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            audio_url = info['url']
-    except Exception as e:
-        await ctx.send(f"❌ No se pudo reproducir el video: {e}")
-        return
-
-    # Reproducir el audio
-    if vc.is_playing():
-        vc.stop()
-    vc.play(discord.FFmpegPCMAudio(audio_url), after=lambda e: print(f"Fin de la canción: {e}"))
-    await ctx.send(f"▶️ Reproduciendo: {info['title']}")
-
+        await ctx.send("No estoy conectado a ningún canal de voz.")
 # ----------------------------
 # COMANDOS DE MODERACIÓN
 # ----------------------------
@@ -135,6 +127,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
