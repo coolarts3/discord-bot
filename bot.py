@@ -52,7 +52,6 @@ async def on_member_join(member):
 # ----------------------------
 @bot.command()
 async def play(ctx, *, query):
-    async def play(ctx, *, url):
     ydl_opts = {
         'format': 'bestaudio',
         'cookiefile': './cookies.txt',  # tu archivo de cookies
@@ -136,6 +135,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
