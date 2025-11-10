@@ -70,14 +70,26 @@ async def on_member_join(member):
 
 # --- Comando de aviso ---
 @bot.command()
-@commands.has_permissions(manage_messages=True)
+@commands.has_permissions(administrator=True)  # Solo admins pueden usarlo
 async def aviso(ctx, *, mensaje):
+    """
+    Envía un embed de aviso, eliminando el mensaje previo de aviso si existe.
+    Uso: !aviso <mensaje>
+    """
+    # Busca el último mensaje de aviso en el canal y lo elimina
+    async for msg in ctx.channel.history(limit=100):
+        if msg.author == bot.user and msg.embeds:  # Solo embeds enviados por el bot
+            await msg.delete()
+            break  # Elimina solo el último mensaje de aviso
+
+    # Crea y envía el nuevo embed
     embed = discord.Embed(
         title="📢 Aviso del Staff",
         description=mensaje,
         color=discord.Color.red()
     )
     await ctx.send(embed=embed)
+
 
 # --- Moderación ---
 @bot.command()
@@ -95,6 +107,7 @@ async def ban(ctx, member: discord.Member, *, reason="No especificado"):
 # --- Ejecutar bot ---
 import os
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
