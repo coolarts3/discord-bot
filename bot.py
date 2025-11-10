@@ -70,8 +70,13 @@ class NextButton(discord.ui.Button):
         if role:
             await interaction.user.add_roles(role)
 
-        # Mostrar segundo menú de videojuegos
-        await interaction.response.send_message("Ahora elige tus juegos favoritos:", view=GamesView(), ephemeral=True)
+        # Mostrar segundo menú de videojuegos (mensaje normal, no efímero)
+        embed = discord.Embed(
+            title="🎮 Selección de Roles - Videojuegos",
+            description="Elige tus juegos favoritos y luego pulsa **Finalizar**.",
+            color=discord.Color.green()
+        )
+        await interaction.response.send_message(embed=embed, view=GamesView())
 
 # ----------------------------
 # Segunda vista: videojuegos (múltiples)
@@ -303,6 +308,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
