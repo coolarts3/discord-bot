@@ -1,4 +1,5 @@
 import discord
+from discord.ext import tasks
 from discord.ext import commands
 from discord import FFmpegPCMAudio
 import yt_dlp
@@ -23,6 +24,27 @@ print("¿Existe el archivo?", os.path.exists('cookies.txt'))
 
 ffmpeg_path = ffmpeg.get_ffmpeg_exe()
 print("FFmpeg path:", ffmpeg_path)
+
+# ID del canal donde se enviarán los recordatorios
+RECORDATORIO_CANAL_ID = 1437188675225124874  # Cambia por tu canal
+
+# Intervalo de tiempo en segundos (ej: 3600 = 1 hora)
+INTERVALO_RECORDATORIO = 3600  # 1 hora
+
+@tasks.loop(seconds=INTERVALO_RECORDATORIO)
+async def enviar_recordatorio():
+    canal = bot.get_channel(RECORDATORIO_CANAL_ID)
+    if canal:
+        await canal.send(
+            "📢 @everyone  ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil de juegos y plataforma!"
+        )
+
+@bot.event
+async def on_ready():
+    print(f"✅ Bot conectado como {bot.user}")
+    # Inicia la tarea de recordatorio si no está ya corriendo
+    if not enviar_recordatorio.is_running():
+        enviar_recordatorio.start()
 
 # Intents necesarios
 intents = discord.Intents.default()
@@ -324,6 +346,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
