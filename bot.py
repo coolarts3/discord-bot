@@ -57,12 +57,13 @@ async def leave(ctx):
 # --- Mensaje de bienvenida ---
 @bot.event
 async def on_member_join(member):
-    channel = discord.utils.get(member.guild.text_channels, name="bienvenida")  # Cambia el nombre al canal que quieras
+    channel_id = 1437186906780860560  # Pon aquí la ID de tu canal
+    channel = bot.get_channel(channel_id)
     if channel:
         embed = discord.Embed(
             title="🎉 ¡Bienvenido!",
             description=f"Hola {member.mention}, bienvenido a **{member.guild.name}** 👋",
-            color=discord.Color.blue()
+            color=discord.Color.red()
         )
         embed.set_thumbnail(url=member.avatar.url)  # Foto de perfil del usuario
         await channel.send(embed=embed)
@@ -94,6 +95,7 @@ async def ban(ctx, member: discord.Member, *, reason="No especificado"):
 # --- Ejecutar bot ---
 import os
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
