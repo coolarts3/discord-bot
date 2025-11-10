@@ -21,7 +21,7 @@ print("FFmpeg path:", ffmpeg_path)
 
 ydl_opts = {
     'format': 'bestaudio',
-    'cookiefile': './cookies.txt',
+    'cookiefile': 'cookies.txt',
 }
 
 # Intents necesarios
@@ -132,6 +132,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
