@@ -71,9 +71,9 @@ async def play(ctx, url: str):
 
     # Opciones de yt-dlp
     ydl_opts = {
-        'format': 'bestaudio',
-        'quiet': True
-    }
+    'format': 'bestaudio',
+    'cookiefile': 'cookies.txt',  # Exportadas desde tu navegador
+}
 
     # Extraer audio con manejo de errores
     try:
@@ -135,6 +135,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
