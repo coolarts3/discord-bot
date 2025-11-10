@@ -69,7 +69,7 @@ async def play(ctx, url: str):
     'cookiefile': 'cookies.txt',  # ruta al archivo de cookies exportado
     'quiet': True
 }
-    try:
+try:
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         audio_url = info['url']
@@ -77,10 +77,11 @@ except Exception as e:
     await ctx.send(f"❌ No se pudo reproducir el video: {e}")
     return
 
-    if vc.is_playing():
-        vc.stop()
-    vc.play(FFmpegPCMAudio(audio_url), after=lambda e: print(f"Fin de la canción: {e}"))
-    await ctx.send(f"▶️ Reproduciendo: {info['title']}")
+# Esto va fuera del try/except, solo se ejecuta si no hubo error
+if vc.is_playing():
+    vc.stop()
+vc.play(FFmpegPCMAudio(audio_url), after=lambda e: print(f"Fin de la canción: {e}"))
+await ctx.send(f"▶️ Reproduciendo: {info['title']}")
 
 # ----------------------------
 # COMANDOS DE MODERACIÓN
@@ -126,4 +127,5 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
