@@ -25,6 +25,13 @@ print("¿Existe el archivo?", os.path.exists('cookies.txt'))
 ffmpeg_path = ffmpeg.get_ffmpeg_exe()
 print("FFmpeg path:", ffmpeg_path)
 
+# Intents necesarios
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
 # ID del canal donde se enviarán los recordatorios
 RECORDATORIO_CANAL_ID = 1437188675225124874  # Cambia por tu canal
 
@@ -45,13 +52,6 @@ async def on_ready():
     # Inicia la tarea de recordatorio si no está ya corriendo
     if not enviar_recordatorio.is_running():
         enviar_recordatorio.start()
-
-# Intents necesarios
-intents = discord.Intents.default()
-intents.members = True
-intents.message_content = True
-
-bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ----------------------------
 # MENÚ DE SELECCIÓN DE ROLES
@@ -346,6 +346,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
