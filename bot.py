@@ -6,7 +6,6 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import os
 import imageio_ffmpeg as ffmpeg
-import pytz  # Para manejar zona horaria
 
 SPOTIFY_CLIENT_ID = "1e5de19a89e2457aa31ddf0f2cad11b6"
 SPOTIFY_CLIENT_SECRET = "d5c34f121bf4417a8071516e5447cdbf"
@@ -16,24 +15,6 @@ spotify = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
     client_id=SPOTIFY_CLIENT_ID,
     client_secret=SPOTIFY_CLIENT_SECRET
 ))
-
-intents = discord.Intents.default()
-intents.messages = True
-intents.voice_states = True
-bot = commands.Bot(command_prefix="!", intents=intents)
-
-# Define tu zona horaria
-TZ = pytz.timezone("Europe/Madrid")
-
-def dentro_de_horario():
-    ahora = datetime.now(TZ).time()
-    hora_inicio = time(7, 0)   # 07:00 AM
-    hora_fin = time(0, 0)      # Medianoche
-    # Si la hora actual está entre medianoche y 07:00 → fuera de servicio
-    if ahora >= hora_inicio or ahora < hora_fin:
-        return True  # Activo
-    else:
-        return False  # Inactivo
 
 import os
 print("Ruta absoluta:", os.path.abspath('cookies.txt'))
@@ -154,6 +135,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
