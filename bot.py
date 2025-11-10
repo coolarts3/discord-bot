@@ -32,6 +32,73 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ----------------------------
+# Menú de selección de roles
+# ----------------------------
+class RoleSelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="💻 PC", description="Jugador de PC", value="PC"),
+            discord.SelectOption(label="🎮 PlayStation", description="Jugador de PlayStation", value="PlayStation"),
+            discord.SelectOption(label="🕹️ Xbox", description="Jugador de Xbox", value="Xbox"),
+        ]
+        super().__init__(placeholder="Elige tu plataforma 🎮", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        role_name = self.values[0]
+        guild = interaction.guild
+        role = discord.utils.get(guild.roles, name=role_name)
+
+        if not role:
+            await interaction.response.send_message(f"❌ No se encontró el rol **{role_name}**.", ephemeral=True)
+            return
+
+        # Quitar roles anteriores
+        for r_name in ["PC", "PlayStation", "Xbox"]:
+            r = discord.utils.get(interaction.user.roles, name=r_name)
+            if r and r != role:
+                await interaction.user.remove_roles(r)
+
+        # Asignar el rol seleccionado
+        await interaction.user.add_roles(role)
+        await interaction.response.send_message(f"✅ Rol **{role_name}** asignado correctamente.", ephemeral=True)
+
+        # Borrar el canal temporal
+        await interaction.channel.delete(reason="Usuario terminó de seleccionar su rol")
+
+class RoleView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(RoleSelect())
+
+# ----------------------------
+# Crear canal temporal automáticamente
+# ----------------------------
+@bot.event
+async def on_member_join(member):
+    guild = member.guild
+
+    # Crear canal temporal solo visible para el usuario y el bot
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        guild.me: discord.PermissionOverwrite(read_messages=True)
+    }
+
+    temp_channel = await guild.create_text_channel(
+        name=f"roles-{member.name}",
+        overwrites=overwrites,
+        reason="Canal temporal de selección de roles"
+    )
+
+    # Enviar embed con el menú de selección
+    embed = discord.Embed(
+        title="🎮 Selección de Roles",
+        description="¡Bienvenido! Elige tu plataforma en el menú de abajo para obtener tu rol.",
+        color=discord.Color.blue()
+    )
+    await temp_channel.send(embed=embed, view=RoleView())
+
+# ----------------------------
 # CREAR CANAL DE VOZ PARTIDA
 # ----------------------------
 CANAL_PERMITIDO_ID = 1437551679770857542  # cambia por el tuyo
@@ -191,6 +258,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
