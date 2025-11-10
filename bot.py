@@ -3,6 +3,10 @@ from discord.ext import commands
 from discord import FFmpegPCMAudio
 from yt_dlp import YoutubeDL
 import os
+import imageio_ffmpeg as ffmpeg
+
+ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+print("FFmpeg path:", ffmpeg_path)
 
 # Intents necesarios
 intents = discord.Intents.default()
@@ -131,6 +135,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
