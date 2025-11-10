@@ -7,8 +7,8 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import os
 import imageio_ffmpeg as ffmpeg
 
-SPOTIFY_CLIENT_ID = "TU_SPOTIFY_CLIENT_ID"
-SPOTIFY_CLIENT_SECRET = "TU_SPOTIFY_CLIENT_SECRET"
+SPOTIFY_CLIENT_ID = "1e5de19a89e2457aa31ddf0f2cad11b6"
+SPOTIFY_CLIENT_SECRET = "d5c34f121bf4417a8071516e5447cdbf"
 
 # Configuración de Spotify
 spotify = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
@@ -127,6 +127,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
