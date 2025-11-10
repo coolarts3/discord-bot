@@ -19,6 +19,11 @@ spotify = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
 ffmpeg_path = ffmpeg.get_ffmpeg_exe()
 print("FFmpeg path:", ffmpeg_path)
 
+ydl_opts = {
+    'format': 'bestaudio',
+    'cookiefile': './cookies.txt',
+}
+
 # Intents necesarios
 intents = discord.Intents.default()
 intents.members = True
@@ -127,6 +132,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
