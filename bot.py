@@ -165,33 +165,6 @@ async def roles(ctx):
     await temp_channel.send(embed=embed, view=PlatformView())
 
 # ----------------------------
-# Comando para crear canal temporal privado
-# ----------------------------
-@bot.command()
-async def roles(ctx):
-    guild = ctx.guild
-    member = ctx.author
-
-    overwrites = {
-        guild.default_role: discord.PermissionOverwrite(read_messages=False),
-        member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-    }
-
-    temp_channel = await guild.create_text_channel(
-        name=f"roles-{member.name}",
-        overwrites=overwrites,
-        reason="Canal temporal de selección de roles"
-    )
-
-    embed = discord.Embed(
-        title="🎮 Selección de Roles - Plataforma",
-        description="Primero, selecciona tu plataforma y luego pulsa **Siguiente**.",
-        color=discord.Color.blue()
-    )
-    await temp_channel.send(embed=embed, view=PlatformView())
-
-# ----------------------------
 # CREAR CANAL DE VOZ PARTIDA
 # ----------------------------
 CANAL_PERMITIDO_ID = 1437551679770857542  # cambia por el tuyo
@@ -351,6 +324,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
