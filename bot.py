@@ -64,10 +64,18 @@ async def play(ctx, url: str):
         vc = ctx.voice_client
 
     # Extraer audio con yt-dlp
-    ydl_opts = {'format': 'bestaudio'}
+    ydl_opts = {
+    'format': 'bestaudio',
+    'cookiefile': 'cookies.txt',  # ruta al archivo de cookies exportado
+    'quiet': True
+}
+    try:
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         audio_url = info['url']
+except Exception as e:
+    await ctx.send(f"❌ No se pudo reproducir el video: {e}")
+    return
 
     if vc.is_playing():
         vc.stop()
@@ -118,3 +126,4 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
