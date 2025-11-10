@@ -5,6 +5,7 @@ import yt_dlp
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import os
+import asyncio
 import imageio_ffmpeg as ffmpeg
 
 SPOTIFY_CLIENT_ID = "1e5de19a89e2457aa31ddf0f2cad11b6"
@@ -190,6 +191,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
