@@ -49,17 +49,17 @@ async def crearpartida(ctx):
         pass
 
     guild = ctx.guild
-    categoria = discord.utils.get(guild.categories, name="🎮 PARTIDAS")
+    categoria = discord.utils.get(guild.categories, name="𝓟𝓐𝓡𝓣𝓘𝓓𝓐𝓢 🖱️")
 
     # Crear canales temporales
     voice_channel = await guild.create_voice_channel(
         name=f"🎮│Partida de {ctx.author.name}",
-        category=partidas,
+        category=categoria,
         user_limit=5
     )
     text_channel = await guild.create_text_channel(
         name=f"💬│chat-{ctx.author.name}",
-        category=partidas
+        category=categoria
     )
 
     # Permisos personalizados
@@ -190,6 +190,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
