@@ -58,7 +58,7 @@ class RoleSelect(discord.ui.Select):
             if r and r != role:
                 await interaction.user.remove_roles(r)
 
-        # Asignar el rol seleccionado
+        # Asignar rol seleccionado
         await interaction.user.add_roles(role)
         await interaction.response.send_message(f"✅ Rol **{role_name}** asignado correctamente.", ephemeral=True)
 
@@ -71,37 +71,35 @@ class RoleView(discord.ui.View):
         self.add_item(RoleSelect())
 
 # ----------------------------
-# Crear canal temporal automáticamente
+# Comando para crear canal privado de selección de roles
 # ----------------------------
-@bot.event
-async def on_member_join(member):
-    guild = member.guild
+@bot.command()
+async def roles(ctx):
+    guild = ctx.guild
+    member = ctx.author
 
+    # Permisos personalizados: solo el usuario y el bot
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(read_messages=False),
         member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
         guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
     }
 
-    try:
-        temp_channel = await guild.create_text_channel(
-            name=f"roles-{member.name}",
-            overwrites=overwrites,
-            reason="Canal temporal de selección de roles"
-        )
-    except discord.Forbidden:
-        print(f"❌ No tengo permisos para crear el canal en {guild.name}")
-        return
-    except discord.HTTPException as e:
-        print(f"❌ Error creando canal: {e}")
-        return
+    # Crear canal temporal
+    temp_channel = await guild.create_text_channel(
+        name=f"roles-{member.name}",
+        overwrites=overwrites,
+        reason="Canal privado de selección de roles"
+    )
 
     embed = discord.Embed(
         title="🎮 Selección de Roles",
-        description="¡Bienvenido! Elige tu plataforma en el menú de abajo para obtener tu rol.",
+        description="Elige tu plataforma en el menú de abajo para obtener tu rol.",
         color=discord.Color.blue()
     )
+
     await temp_channel.send(embed=embed, view=RoleView())
+    await ctx.send(f"✅ Canal privado creado: {temp_channel.mention}", delete_after=10)
 
 # ----------------------------
 # CREAR CANAL DE VOZ PARTIDA
@@ -263,6 +261,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
