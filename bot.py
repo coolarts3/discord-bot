@@ -77,20 +77,25 @@ class RoleView(discord.ui.View):
 async def on_member_join(member):
     guild = member.guild
 
-    # Crear canal temporal solo visible para el usuario y el bot
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(read_messages=False),
         member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        guild.me: discord.PermissionOverwrite(read_messages=True)
+        guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
     }
 
-    temp_channel = await guild.create_text_channel(
-        name=f"roles-{member.name}",
-        overwrites=overwrites,
-        reason="Canal temporal de selección de roles"
-    )
+    try:
+        temp_channel = await guild.create_text_channel(
+            name=f"roles-{member.name}",
+            overwrites=overwrites,
+            reason="Canal temporal de selección de roles"
+        )
+    except discord.Forbidden:
+        print(f"❌ No tengo permisos para crear el canal en {guild.name}")
+        return
+    except discord.HTTPException as e:
+        print(f"❌ Error creando canal: {e}")
+        return
 
-    # Enviar embed con el menú de selección
     embed = discord.Embed(
         title="🎮 Selección de Roles",
         description="¡Bienvenido! Elige tu plataforma en el menú de abajo para obtener tu rol.",
@@ -258,6 +263,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
