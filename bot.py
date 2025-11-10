@@ -23,11 +23,6 @@ print("¿Existe el archivo?", os.path.exists('cookies.txt'))
 ffmpeg_path = ffmpeg.get_ffmpeg_exe()
 print("FFmpeg path:", ffmpeg_path)
 
-ydl_opts = {
-    'format': 'bestaudio',
-    'cookiefile': 'cookies.txt',
-}
-
 # Intents necesarios
 intents = discord.Intents.default()
 intents.members = True
@@ -57,6 +52,11 @@ async def on_member_join(member):
 # ----------------------------
 @bot.command()
 async def play(ctx, *, query):
+    async def play(ctx, *, url):
+    ydl_opts = {
+        'format': 'bestaudio',
+        'cookiefile': './cookies.txt',  # tu archivo de cookies
+    }
     """Busca la canción en Spotify y la reproduce en Discord"""
     # Buscar la canción en Spotify
     results = spotify.search(q=query, type="track", limit=1)
@@ -136,6 +136,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
