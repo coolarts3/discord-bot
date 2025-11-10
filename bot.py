@@ -17,8 +17,8 @@ spotify = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
 ))
 
 import os
-print("Ruta absoluta:", os.path.abspath('./cookies.txt'))
-print("¿Existe el archivo?", os.path.exists('./cookies.txt'))
+print("Ruta absoluta:", os.path.abspath('cookies.txt'))
+print("¿Existe el archivo?", os.path.exists('cookies.txt'))
 
 ffmpeg_path = ffmpeg.get_ffmpeg_exe()
 print("FFmpeg path:", ffmpeg_path)
@@ -136,6 +136,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
