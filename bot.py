@@ -58,30 +58,33 @@ async def play(ctx, url: str):
 
     channel = ctx.author.voice.channel
 
+    # Conectarse al canal
     if ctx.voice_client is None:
         vc = await channel.connect()
     else:
         vc = ctx.voice_client
 
-    # Extraer audio con yt-dlp
+    # Opciones de yt-dlp
     ydl_opts = {
-    'format': 'bestaudio',
-    'cookiefile': 'cookies.txt',  # ruta al archivo de cookies exportado
-    'quiet': True
-}
-try:
-    with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        audio_url = info['url']
-except Exception as e:
-    await ctx.send(f"❌ No se pudo reproducir el video: {e}")
-    return
+        'format': 'bestaudio',
+        'quiet': True
+    }
 
-# Esto va fuera del try/except, solo se ejecuta si no hubo error
-if vc.is_playing():
-    vc.stop()
-vc.play(FFmpegPCMAudio(audio_url), after=lambda e: print(f"Fin de la canción: {e}"))
-await ctx.send(f"▶️ Reproduciendo: {info['title']}")
+    # Extraer audio con manejo de errores
+    try:
+        from yt_dlp import YoutubeDL
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            audio_url = info['url']
+    except Exception as e:
+        await ctx.send(f"❌ No se pudo reproducir el video: {e}")
+        return
+
+    # Reproducir el audio
+    if vc.is_playing():
+        vc.stop()
+    vc.play(discord.FFmpegPCMAudio(audio_url), after=lambda e: print(f"Fin de la canción: {e}"))
+    await ctx.send(f"▶️ Reproduciendo: {info['title']}")
 
 # ----------------------------
 # COMANDOS DE MODERACIÓN
@@ -127,5 +130,6 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
