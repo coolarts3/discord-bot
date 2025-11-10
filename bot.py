@@ -1,88 +1,112 @@
 import discord
 from discord.ext import commands
-import asyncio
+from discord import FFmpegPCMAudio
+from yt_dlp import YoutubeDL
+import os
 
+# Intents necesarios
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix="?", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-@bot.event
-async def on_ready():
-    print(f"✅ Bot conectado como {bot.user}")
-    
-# --- Evento cuando el bot está listo ---
-@bot.event
-async def on_ready():
-    print(f"✅ Bot conectado como {bot.user}")
-
-# --- Comando para unirse al canal de voz ---
-@bot.command()
-async def join(ctx):
-    if ctx.author.voice:
-        channel = ctx.author.voice.channel
-        await channel.connect()
-        await ctx.send(f"Me he unido al canal: {channel.name}")
-    else:
-        await ctx.send("❌ Debes estar en un canal de voz primero.")
-
-# --- Comando para reproducir música desde URL de YouTube ---
-@bot.command()
-async def play(ctx, url: str):
-    if ctx.voice_client is None:
-        if ctx.author.voice:
-            channel = ctx.author.voice.channel
-            await channel.connect()
-        else:
-            await ctx.send("❌ Debes estar en un canal de voz primero.")
-            return
-
-    vc = ctx.voice_client
-
-    # Usa FFmpeg para reproducir la URL
-    vc.stop()
-    vc.play(discord.FFmpegPCMAudio(source=url), after=lambda e: print(f'Fin de la canción: {e}'))
-    await ctx.send(f"▶️ Reproduciendo: {url}")
-
-# --- Comando para desconectarse ---
-@bot.command()
-async def leave(ctx):
-    if ctx.voice_client:
-        await ctx.voice_client.disconnect()
-        await ctx.send("Me he desconectado del canal de voz.")
-    else:
-        await ctx.send("❌ No estoy conectado a ningún canal de voz.")
-
-# --- Mensaje de bienvenida ---
+# ----------------------------
+# EVENTO DE BIENVENIDA
+# ----------------------------
 @bot.event
 async def on_member_join(member):
-    channel_id = 1437186906780860560  # Pon aquí la ID de tu canal
+    channel_id = 1437186906780860560  # Reemplaza con la ID de tu canal
     channel = bot.get_channel(channel_id)
     if channel:
         embed = discord.Embed(
             title="🎉 ¡Bienvenido!",
             description=f"Hola {member.mention}, bienvenido a **{member.guild.name}** 👋",
-            color=discord.Color.red()
+            color=discord.Color.blue()
         )
-        embed.set_thumbnail(url=member.avatar.url)  # Foto de perfil del usuario
+        embed.set_thumbnail(url=member.display_avatar.url)
         await channel.send(embed=embed)
 
-# --- Comando de aviso ---
+# ----------------------------
+# COMANDO DE MÚSICA
+# ----------------------------
 @bot.command()
-@commands.has_permissions(administrator=True)  # Solo admins pueden usarlo
-async def aviso(ctx, *, mensaje):
-    """
-    Envía un embed de aviso, eliminando el mensaje previo de aviso si existe.
-    Uso: !aviso <mensaje>
-    """
-    # Busca el último mensaje de aviso en el canal y lo elimina
-    async for msg in ctx.channel.history(limit=100):
-        if msg.author == bot.user and msg.embeds:  # Solo embeds enviados por el bot
-            await msg.delete()
-            break  # Elimina solo el último mensaje de aviso
+async def join(ctx):
+    if ctx.author.voice:
+        channel = ctx.author.voice.channel
+        if ctx.voice_client is None:
+            await channel.connect()
+            await ctx.send(f"✅ Me he unido al canal: {channel.name}")
+        else:
+            await ctx.send("Ya estoy en un canal de voz.")
+    else:
+        await ctx.send("❌ Debes estar en un canal de voz primero.")
 
-    # Crea y envía el nuevo embed
+@bot.command()
+async def leave(ctx):
+    if ctx.voice_client:
+        await ctx.voice_client.disconnect()
+        await ctx.send("👋 Me he desconectado del canal de voz.")
+    else:
+        await ctx.send("❌ No estoy conectado a ningún canal de voz.")
+
+@bot.command()
+async def play(ctx, url: str):
+    if ctx.author.voice is None:
+        await ctx.send("❌ Debes estar en un canal de voz primero.")
+        return
+
+    channel = ctx.author.voice.channel
+
+    if ctx.voice_client is None:
+        vc = await channel.connect()
+    else:
+        vc = ctx.voice_client
+
+    # Extraer audio con yt-dlp
+    ydl_opts = {'format': 'bestaudio'}
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+        audio_url = info['url']
+
+    if vc.is_playing():
+        vc.stop()
+    vc.play(FFmpegPCMAudio(audio_url), after=lambda e: print(f"Fin de la canción: {e}"))
+    await ctx.send(f"▶️ Reproduciendo: {info['title']}")
+
+# ----------------------------
+# COMANDOS DE MODERACIÓN
+# ----------------------------
+@bot.command()
+@commands.has_permissions(kick_members=True)
+async def kick(ctx, member: discord.Member, *, reason=None):
+    await member.kick(reason=reason)
+    await ctx.send(f"👢 {member} ha sido expulsado. Motivo: {reason}")
+
+@bot.command()
+@commands.has_permissions(ban_members=True)
+async def ban(ctx, member: discord.Member, *, reason=None):
+    await member.ban(reason=reason)
+    await ctx.send(f"🔨 {member} ha sido baneado. Motivo: {reason}")
+
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def limpiar(ctx, cantidad: int):
+    deleted = await ctx.channel.purge(limit=cantidad)
+    await ctx.send(f"🧹 Se han borrado {len(deleted)} mensajes.", delete_after=5)
+
+# ----------------------------
+# COMANDO DE AVISO
+# ----------------------------
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def aviso(ctx, *, mensaje):
+    # Borra el último mensaje de aviso enviado por el bot
+    async for msg in ctx.channel.history(limit=100):
+        if msg.author == bot.user and msg.embeds:
+            await msg.delete()
+            break
+
     embed = discord.Embed(
         title="📢 Aviso del Staff",
         description=mensaje,
@@ -90,25 +114,7 @@ async def aviso(ctx, *, mensaje):
     )
     await ctx.send(embed=embed)
 
-
-# --- Moderación ---
-@bot.command()
-@commands.has_permissions(kick_members=True)
-async def kick(ctx, member: discord.Member, *, reason="No especificado"):
-    await member.kick(reason=reason)
-    await ctx.send(f"👢 {member} ha sido expulsado. Motivo: {reason}")
-
-@bot.command()
-@commands.has_permissions(ban_members=True)
-async def ban(ctx, member: discord.Member, *, reason="No especificado"):
-    await member.ban(reason=reason)
-    await ctx.send(f"🔨 {member} ha sido baneado. Motivo: {reason}")
-
-# --- Ejecutar bot ---
-import os
+# ----------------------------
+# INICIAR BOT
+# ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
-
-
-
-
-
