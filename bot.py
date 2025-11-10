@@ -31,6 +31,55 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ----------------------------
+# CREAR CANAL DE VOZ PARTIDA
+# ----------------------------
+CANAL_PERMITIDO_ID = 1437551679770857542  # cambia por el tuyo
+
+# 🎮 Crear partida (solo en un canal específico)
+@bot.command()
+async def crearpartida(ctx):
+    if ctx.channel.id != CANAL_PERMITIDO_ID:
+        await ctx.send(f"❌ Este comando solo se puede usar en <#{CANAL_PERMITIDO_ID}>.", delete_after=5)
+        return
+
+    # 🧹 Borrar mensaje del comando
+    try:
+        await ctx.message.delete()
+    except discord.Forbidden:
+        pass
+
+    guild = ctx.guild
+    categoria = discord.utils.get(guild.categories, name="🎮 PARTIDAS")
+
+    # Crear canales temporales
+    voice_channel = await guild.create_voice_channel(
+        name=f"🎮│Partida de {ctx.author.name}",
+        category=categoria,
+        user_limit=5
+    )
+    text_channel = await guild.create_text_channel(
+        name=f"💬│chat-{ctx.author.name}",
+        category=categoria
+    )
+
+    # Permisos personalizados
+    await voice_channel.set_permissions(ctx.author, connect=True, manage_channels=True)
+    await text_channel.set_permissions(ctx.author, send_messages=True, read_messages=True)
+
+    await ctx.send(
+        f"✅ {ctx.author.mention}, se han creado tus canales temporales:\n"
+        f"🎧 {voice_channel.mention}\n💬 {text_channel.mention}"
+    )
+
+    # Autoeliminar cuando quede vacío
+    while True:
+        await asyncio.sleep(10)
+        if len(voice_channel.members) == 0:
+            await text_channel.delete()
+            await voice_channel.delete()
+            print(f"🗑️ Canales de {ctx.author.name} eliminados automáticamente.")
+            break
+# ----------------------------
 # EVENTO DE BIENVENIDA
 # ----------------------------
 @bot.event
@@ -141,6 +190,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
