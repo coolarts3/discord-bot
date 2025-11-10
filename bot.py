@@ -54,7 +54,7 @@ async def on_member_join(member):
 async def play(ctx, *, query):
     ydl_opts = {
         'format': 'bestaudio',
-        'cookiefile': './cookies.txt',  # tu archivo de cookies
+        'cookiefile': 'cookies.txt',  # tu archivo de cookies
     }
     """Busca la canción en Spotify y la reproduce en Discord"""
     # Buscar la canción en Spotify
@@ -135,6 +135,7 @@ async def aviso(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
