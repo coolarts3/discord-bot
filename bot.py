@@ -174,33 +174,50 @@ async def lfg(ctx, juego: str = None, jugadores: int = None):
     await monitor_inactividad(text_channel, voice_channel, timeout=300)
 
 
-async def monitor_inactividad(text_channel, voice_channel, timeout=300):
-    """Elimina canales tras un periodo sin actividad."""
+async def monitor_inactividad(bot, text_channel, voice_channel, timeout=300):
+    """
+    Monitorea la inactividad en los canales creados automáticamente.
+    Si no hay actividad durante 'timeout' segundos (por defecto 5 minutos),
+    los elimina junto con el mensaje inicial si existe.
+    """
+    print(f"👀 Monitorizando actividad en {text_channel.name} y {voice_channel.name}...")
+
+    last_message_time = datetime.utcnow()
+
     while True:
-        await asyncio.sleep(timeout)
+        await asyncio.sleep(30)  # Revisa cada 30 segundos
+        now = datetime.utcnow()
 
-        # Revisar actividad: sin mensajes recientes y sin usuarios en voz
-        last_message_time = None
-        async for message in text_channel.history(limit=1):
-            last_message_time = message.created_at
+        # Verifica si hay alguien conectado en el canal de voz
+        voice_active = any(member for member in voice_channel.members if not member.bot)
 
-        now = discord.utils.utcnow()
-        voice_active = len(voice_channel.members) > 0
-
-        if (not voice_active) and (not last_message_time or (now - last_message_time).total_seconds() > timeout):
-            await text_channel.send("💤 Eliminando canales por inactividad...")
-            await asyncio.sleep(3)
-
-    # 🆕 Eliminar también el mensaje de anuncio si aún existe
-    if hasattr(text_channel, "starter_message"):
+        # Obtiene los últimos mensajes del canal de texto
         try:
-            await text_channel.starter_message.delete()
+            async for message in text_channel.history(limit=1):
+                if message.author != bot.user:
+                    last_message_time = message.created_at
         except:
             pass
 
-    await text_channel.delete()
-    await voice_channel.delete()
-    return
+        # Si no hay actividad ni usuarios conectados durante el timeout...
+        if (not voice_active) and (now - last_message_time).total_seconds() > timeout:
+            await text_channel.send("💤 Eliminando canales por inactividad...")
+            await asyncio.sleep(3)
+
+            # 🆕 Eliminar el mensaje de anuncio si aún existe
+            if hasattr(text_channel, "starter_message"):
+                try:
+                    await text_channel.starter_message.delete()
+                except Exception as e:
+                    print(f"⚠️ No se pudo eliminar el mensaje inicial: {e}")
+
+            try:
+                await text_channel.delete()
+                await voice_channel.delete()
+                print(f"🗑️ Canales {text_channel.name} y {voice_channel.name} eliminados por inactividad.")
+            except Exception as e:
+                print(f"⚠️ Error al eliminar canales: {e}")
+            return
 
 # ----------------------------
 # MENÚ DE SELECCIÓN DE ROLES
@@ -530,6 +547,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
