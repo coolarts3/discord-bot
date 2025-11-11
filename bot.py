@@ -90,11 +90,36 @@ async def before_aviso():
 
 #CREACION DE PARTIDAS POR ROL
 
-@bot.command()
-async def lfg(ctx, juego: str, jugadores: int):
-    """Crea una búsqueda de grupo para un juego."""
-    await ctx.message.delete()  # Borra el comando original
+# ID del canal donde se puede usar este comando
+LFG_CHANNEL_ID = 1437833190076317806  # 🔁 cámbialo por el ID de tu canal permitido
 
+@bot.command()
+async def lfg(ctx, juego: str = None, jugadores: int = None):
+    """Busca grupo para un juego."""
+    # Verificar canal permitido
+    if ctx.channel.id != LFG_CHANNEL_ID:
+        await ctx.send("❌ Este comando solo puede usarse en el canal designado para buscar partidas.")
+        await asyncio.sleep(5)
+        await ctx.message.delete()
+        return
+
+    # Borrar el comando original
+    await ctx.message.delete()
+
+    # Validar argumentos
+    if juego is None or jugadores is None:
+        msg = await ctx.send("⚠️ Uso correcto: `!lfg <nombre_del_juego> <número_de_jugadores>`")
+        await asyncio.sleep(5)
+        await msg.delete()
+        return
+
+    if not isinstance(jugadores, int) or jugadores < 2:
+        msg = await ctx.send("⚠️ El número de jugadores debe ser un número entero mayor o igual a 2.")
+        await asyncio.sleep(5)
+        await msg.delete()
+        return
+
+    # Crear anuncio
     anuncio = await ctx.send(
         f"🎮 **{ctx.author.display_name}** busca grupo de **{jugadores}** personas para **{juego}**.\n"
         f"Reacciona con 🎮 para unirte a la espera."
@@ -120,11 +145,13 @@ async def lfg(ctx, juego: str, jugadores: int):
             return
         else:
             jugadores_actuales.append(user)
-            await ctx.send(f"✅ {user.display_name} se ha unido a la búsqueda ({len(jugadores_actuales)}/{jugadores})")
+            msg = await ctx.send(f"✅ {user.display_name} se ha unido a la búsqueda ({len(jugadores_actuales)}/{jugadores})")
+            await asyncio.sleep(3)
+            await msg.delete()
 
     # Crear canales privados
     guild = ctx.guild
-    category = get(guild.categories, name="𝓟𝓐𝓡𝓣𝓘𝓓𝓐𝓢 🖱️")  # Cambia este nombre si quieres otra categoría
+    category = get(guild.categories, name="𝓟𝓐𝓡𝓣𝓘𝓓𝓐𝓢 🖱️")
     if not category:
         category = await guild.create_category("𝓟𝓐𝓡𝓣𝓘𝓓𝓐𝓢 🖱️")
 
@@ -143,7 +170,7 @@ async def lfg(ctx, juego: str, jugadores: int):
         f"⏱️ Estos canales se eliminarán tras 5 minutos de inactividad."
     )
 
-    # Monitorear actividad
+    # Monitorear inactividad
     await monitor_inactividad(text_channel, voice_channel, timeout=300)
 
 
@@ -495,6 +522,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
