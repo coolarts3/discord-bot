@@ -87,6 +87,29 @@ async def aviso_automatico():
 async def before_aviso():
     await bot.wait_until_ready()
     print("⏳ Esperando para iniciar avisos automáticos...")
+#ELIMINACION DE MENSAJES NO COMANDOS    
+
+@bot.event
+async def on_message(message):
+    # Ignorar mensajes del bot
+    if message.author.bot:
+        return
+
+    # Lista de IDs de canales donde solo se permiten comandos
+    canales_restringidos = [1437551679770857542, 1437833190076317806]  # reemplaza con tus IDs
+
+    if message.channel.id in canales_restringidos:
+        try:
+            await message.delete()
+        except Exception as e:
+            print(f"⚠️ No se pudo eliminar mensaje: {e}")
+        return  # Evitar que siga procesando comandos si quieres
+
+    # Procesar comandos normalmente
+    await bot.process_commands(message)
+
+if message.channel.id in canales_restringidos and not message.content.startswith(bot.command_prefix):
+    await message.delete()
 
 #CREACION DE PARTIDAS POR ROL
 
@@ -547,6 +570,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
