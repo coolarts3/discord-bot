@@ -8,6 +8,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import os
 import asyncio
 import imageio_ffmpeg as ffmpeg
+from datetime import datetime, timedelta
 
 SPOTIFY_CLIENT_ID = "1e5de19a89e2457aa31ddf0f2cad11b6"
 SPOTIFY_CLIENT_SECRET = "d5c34f121bf4417a8071516e5447cdbf"
@@ -414,6 +415,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
