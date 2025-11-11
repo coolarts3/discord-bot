@@ -9,7 +9,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import os
 import asyncio
 import imageio_ffmpeg as ffmpeg
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 SPOTIFY_CLIENT_ID = "1e5de19a89e2457aa31ddf0f2cad11b6"
 SPOTIFY_CLIENT_SECRET = "d5c34f121bf4417a8071516e5447cdbf"
@@ -212,11 +212,11 @@ async def buscar_grupo(ctx, juego: str, jugadores: int):
 
 async def monitor_inactividad(bot, text_channel, voice_channel, starter_message, timeout=300):
     print(f"👀 Monitorizando {text_channel.name} y {voice_channel.name}...")
-    last_message_time = datetime.utcnow()
+    last_message_time = datetime.now(timezone.utc)  # aware
 
     while True:
         await asyncio.sleep(30)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)  # aware
 
         # Verificar si hay alguien en el canal de voz
         voice_active = any(member for member in voice_channel.members if not member.bot)
@@ -225,7 +225,7 @@ async def monitor_inactividad(bot, text_channel, voice_channel, starter_message,
         try:
             async for message in text_channel.history(limit=1):
                 if message.author != bot.user:
-                    last_message_time = message.created_at
+                    last_message_time = message.created_at.replace(tzinfo=timezone.utc)  # convertir a aware
         except:
             pass
 
@@ -578,6 +578,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
