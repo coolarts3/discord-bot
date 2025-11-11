@@ -108,9 +108,6 @@ async def on_message(message):
     # Procesar comandos normalmente
     await bot.process_commands(message)
 
-if message.channel.id in canales_restringidos and not message.content.startswith(bot.command_prefix):
-    await message.delete()
-
 #CREACION DE PARTIDAS POR ROL
 
 # ID del canal donde se puede usar este comando
@@ -192,6 +189,8 @@ async def lfg(ctx, juego: str = None, jugadores: int = None):
     f"Canal de voz: {voice_channel.mention}\n"
     f"⏱️ Estos canales se eliminarán tras 5 minutos de inactividad."
 )
+
+    await starter_message.delete(delay=5)
 
     # Monitorear inactividad
     await monitor_inactividad(ctx.bot, text_channel, voice_channel, timeout=300)
@@ -570,6 +569,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
