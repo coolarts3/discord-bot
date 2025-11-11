@@ -142,15 +142,18 @@ async def lfg(ctx, juego: str = None, jugadores: int = None):
 
     # Crear anuncio
 async def buscar_grupo(ctx, juego: str, jugadores: int):
+    # Enviar mensaje de anuncio
     anuncio = await ctx.send(
-    f"🎮 **{ctx.author.display_name}** busca grupo de **{jugadores}** personas para **{juego}**.\n"
-    f"Reacciona con 🎮 para unirte a la espera.",
-    delete_after=300  # 300 segundos = 5 minutos
-)
-await anuncio.add_reaction("🎮")
+        f"🎮 **{ctx.author.display_name}** busca grupo de **{jugadores}** personas para **{juego}**.\n"
+        f"Reacciona con 🎮 para unirte a la espera.",
+        delete_after=300  # Se borrará automáticamente después de 5 minutos
+    )
+    await anuncio.add_reaction("🎮")
 
+    # Lista de jugadores inicial
     jugadores_actuales = [ctx.author]
 
+    # Función para comprobar la reacción
     def check_reaction(reaction, user):
         return (
             reaction.message.id == anuncio.id
@@ -571,6 +574,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
