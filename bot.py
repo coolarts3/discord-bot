@@ -331,7 +331,7 @@ async def limpiar(ctx, cantidad: int):
 async def aviso(ctx, *, mensaje):
     # Borra el último mensaje de aviso enviado por el bot
     async for msg in ctx.channel.history(limit=100):
-        if msg.author == bot.user and msg.embeds:
+        if msg.author == member:
             await msg.delete()
             break
 
@@ -343,9 +343,23 @@ async def aviso(ctx, *, mensaje):
     await ctx.send(embed=embed)
 
 # ----------------------------
+# ENVIAR MENSAJE
+# ----------------------------
+
+@bot.command()
+async def say(ctx, *, mensaje):
+    async for msg in ctx.channel.history(limit=100):
+        if msg.author == member:
+            await msg.delete()
+            break
+            
+    await ctx.send(mensaje)
+
+# ----------------------------
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
