@@ -164,11 +164,11 @@ async def lfg(ctx, juego: str = None, jugadores: int = None):
     text_channel = await guild.create_text_channel(f"partida-{juego.lower()}", overwrites=overwrites, category=category)
     voice_channel = await guild.create_voice_channel(f"🎮 {juego}", overwrites=overwrites, category=category)
 
-    await text_channel.send(
-        f"✅ **Partida lista:** {', '.join([p.mention for p in jugadores_actuales])}\n"
-        f"Canal de voz: {voice_channel.mention}\n"
-        f"⏱️ Estos canales se eliminarán tras 5 minutos de inactividad."
-    )
+    starter_message = await text_channel.send(
+    f"✅ **Partida lista:** {', '.join([p.mention for p in jugadores_actuales])}\n"
+    f"Canal de voz: {voice_channel.mention}\n"
+    f"⏱️ Estos canales se eliminarán tras 5 minutos de inactividad."
+)
 
     # Monitorear inactividad
     await monitor_inactividad(ctx.bot, text_channel, voice_channel, timeout=300)
@@ -207,7 +207,7 @@ async def monitor_inactividad(bot, text_channel, voice_channel, timeout=300):
             # 🆕 Eliminar el mensaje de anuncio si aún existe
             if hasattr(text_channel, "starter_message"):
                 try:
-                    await text_channel.starter_message.delete()
+                    await starter_message.delete()
                 except Exception as e:
                     print(f"⚠️ No se pudo eliminar el mensaje inicial: {e}")
 
@@ -547,6 +547,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
