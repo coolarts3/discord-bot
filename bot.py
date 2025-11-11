@@ -222,33 +222,35 @@ async def crearpartida(ctx):
     await voice_channel.set_permissions(ctx.author, connect=True, manage_channels=True)
     await text_channel.set_permissions(ctx.author, send_messages=True, read_messages=True)
 
-    await ctx.send(
+    # Enviar mensaje del bot y guardarlo
+    bot_message = await ctx.send(
         f"✅ {ctx.author.mention}, se han creado tus canales temporales:\n"
         f"🎧 {voice_channel.mention}\n💬 {text_channel.mention}"
     )
 
     # Autoeliminar cuando quede vacío
-  while True:
-    await asyncio.sleep(10)  # espera 10 segundos antes de comprobar
+    while True:
+        await asyncio.sleep(10)  # espera 10 segundos antes de comprobar
 
-    if len(voice_channel.members) == 0:
-        try:
-            await text_channel.delete()
-        except discord.Forbidden:
-            pass
+        if len(voice_channel.members) == 0:
+            # Borrar canales y mensaje del bot
+            try:
+                await text_channel.delete()
+            except discord.Forbidden:
+                pass
 
-        try:
-            await voice_channel.delete()
-        except discord.Forbidden:
-            pass
+            try:
+                await voice_channel.delete()
+            except discord.Forbidden:
+                pass
 
-        try:
-            await bot_message.delete()
-        except discord.Forbidden:
-            pass
+            try:
+                await bot_message.delete()
+            except discord.Forbidden:
+                pass
 
-        print(f"🗑️ Canales y mensaje de {ctx.author.name} eliminados automáticamente.")
-        break  # salir del bucle
+            print(f"🗑️ Canales y mensaje de {ctx.author.name} eliminados automáticamente.")
+            break
 
 
 # ----------------------------
@@ -379,6 +381,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
