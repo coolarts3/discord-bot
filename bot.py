@@ -761,6 +761,13 @@ class PersonaModal(discord.ui.Modal):
         await report_channel.send(embed=embed)
         await interaction.response.send_message(f"✅ Tu reporte de {nombre} ha sido enviado.", ephemeral=True)
 
+# ✅ Añadir botón para cerrar el ticket
+view = CloseTicketButton(ticket_owner=interaction.user)
+await report_channel.send(
+    "📌 Aquí está tu ticket. Pulsa el botón para cerrarlo cuando hayas terminado.",
+    view=view
+)
+
 
 class BugModal(discord.ui.Modal):
     def __init__(self):
@@ -800,6 +807,13 @@ class BugModal(discord.ui.Modal):
         await report_channel.send(embed=embed)
         await interaction.response.send_message("✅ Tu reporte de bug ha sido enviado.", ephemeral=True)
 
+# ✅ Añadir botón para cerrar el ticket
+view = CloseTicketButton(ticket_owner=interaction.user)
+await report_channel.send(
+    "📌 Aquí está tu ticket. Pulsa el botón para cerrarlo cuando hayas terminado.",
+    view=view
+)
+
 
 # -------------------------------
 # BOTONES DEL MENSAJE FIJO
@@ -820,6 +834,21 @@ class ReportButtonView(discord.ui.View):
     async def info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(BugModal())  # Puedes crear un InfoModal diferente
 
+#boton cerrar canal
+class CloseTicketButton(discord.ui.View):
+    def __init__(self, ticket_owner):
+        super().__init__(timeout=None)
+        self.ticket_owner = ticket_owner
+
+    @discord.ui.button(label="🔒 Cerrar ticket", style=discord.ButtonStyle.red)
+    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Solo el dueño del ticket o un administrador puede cerrar
+        if interaction.user != self.ticket_owner and not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message("❌ Solo el creador o un admin puede cerrar este ticket.", ephemeral=True)
+            return
+
+        # Opción 1: eliminar el canal directamente
+        await interaction.channel.delete(reason="Ticket cerrado")
 
 # -------------------------------
 # COMANDO PARA ENVIAR MENSAJE FIJO
@@ -837,6 +866,7 @@ async def crear_reporte(ctx, canal: discord.TextChannel):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
