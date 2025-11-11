@@ -463,7 +463,7 @@ async def on_member_join(member):
             description=f"𝕄𝕌𝕐 𝔹𝕌𝔼ℕ𝔸𝕊 {member.mention}, 𝔹𝕀𝔼ℕ𝕍𝔼ℕ𝕀𝔻𝕆 𝔸 **{member.guild.name}** 𝕃𝔼𝔼 𝕃𝔸𝕊 ℕ𝕆ℝ𝕄𝔸𝕊 𝕐 𝕍𝔼ℝ𝕀𝔽Íℂ𝔸𝕋𝔼 𝔼ℕ <#1436710363881275402> 👋",
             color=discord.Color.red()
         )
-        embed.set_image(url="https://cdn.discordapp.com/attachments/1436710363881275405/1437200246424862893/anime-banner-gif-file-2065kb-kmtu01zw6scfqjwu.gif?ex=69126088&is=69110f08&hm=82a0a1335b3067c8ee5e45ea78e0b7eadd7aebe0b0000c85e7d72100d17a466f&")
+        embed.set_image(url="https://i.pinimg.com/originals/1b/9e/e5/1b9ee55324c023928ecd2895aa602baa.gif")
         embed.set_thumbnail(url=member.display_avatar.url)
         await channel.send(embed=embed)
 
@@ -578,6 +578,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
