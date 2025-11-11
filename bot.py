@@ -262,84 +262,92 @@ async def monitor_inactividad(bot, text_channel, voice_channel, starter_message,
 # MENÚ DE SELECCIÓN DE ROLES
 # ----------------------------
 
-class PlatformSelect(discord.ui.Select):
-    def __init__(self):
-        options = [
-            discord.SelectOption(label="💻 PC", value="PC"),
-            discord.SelectOption(label="🎮 PlayStation", value="PlayStation"),
-            discord.SelectOption(label="🕹️ Xbox", value="Xbox"),
-        ]
-        super().__init__(placeholder="Elige tu plataforma 🎮", min_values=1, max_values=1, options=options)
-        self.selected_role = None
+class PlatformModal(discord.ui.Modal):
+    def __init__(self, view):
+        super().__init__(title="Selecciona tu plataforma")
+        self.view = view
+        self.platform_input = discord.ui.TextInput(
+            label="Plataforma (PC, PlayStation, Xbox)",
+            placeholder="Escribe tu plataforma",
+            required=True,
+            max_length=20
+        )
+        self.add_item(self.platform_input)
 
-    async def callback(self, interaction: discord.Interaction):
-        self.selected_role = self.values[0]
-        await interaction.response.defer()  # No enviar mensaje todavía
-
-
-class NextButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(label="Siguiente", style=discord.ButtonStyle.blurple)
-
-    async def callback(self, interaction: discord.Interaction):
-        select: PlatformSelect = self.view.platform_select
-        if not select.selected_role:
-            await interaction.response.send_message("⚠️ Debes seleccionar una plataforma primero.", ephemeral=True)
-            return
-
-        # Asignar rol de plataforma
-        role = discord.utils.get(interaction.guild.roles, name=select.selected_role)
+    async def on_submit(self, interaction: discord.Interaction):
+        platform = self.platform_input.value
+        role = discord.utils.get(interaction.guild.roles, name=platform)
         if role:
             await interaction.user.add_roles(role)
 
-        # Mostrar menú de videojuegos
+        # Crear canal temporal
+        overwrites = {
+            interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            interaction.user: discord.PermissionOverwrite(view_channel=True)
+        }
+        category = discord.utils.get(interaction.guild.categories, name="🎮 Roles")
+        if not category:
+            category = await interaction.guild.create_category("🎮 Roles")
+        temp_channel = await interaction.guild.create_text_channel(
+            name=f"{interaction.user.name}-roles", overwrites=overwrites, category=category
+        )
+
+        # Guardar canal en la view para continuar
+        self.view.temp_channel = temp_channel
+
+        # Enviar mensaje para elegir juegos
         embed = discord.Embed(
-            title="🎮 Selección de Roles - Videojuegos",
-            description="Elige tus juegos favoritos y luego pulsa **Finalizar**.",
+            title="🎮 Selección de juegos",
+            description="Escribe tus juegos favoritos separados por comas en el siguiente modal",
             color=discord.Color.green()
         )
-        view = GamesView()
-        await interaction.response.edit_message(embed=embed, view=view)
+        await temp_channel.send(embed=embed)
+        await interaction.response.send_modal(GamesModal(self.view))
 
 
-class GamesSelect(discord.ui.Select):
-    def __init__(self):
-        options = [
-            discord.SelectOption(label="Valorant", value="Valorant"),
-            discord.SelectOption(label="League of Legends", value="LoL"),
-            discord.SelectOption(label="Call of Duty", value="COD"),
-            discord.SelectOption(label="Minecraft", value="Minecraft"),
-            discord.SelectOption(label="Fortnite", value="Fortnite"),
-        ]
-        super().__init__(placeholder="Elige tus juegos favoritos", min_values=1, max_values=4, options=options)
-        self.selected_roles = []
+class GamesModal(discord.ui.Modal):
+    def __init__(self, view):
+        super().__init__(title="Elige tus juegos")
+        self.view = view
+        self.games_input = discord.ui.TextInput(
+            label="Juegos (separados por comas)",
+            placeholder="Valorant, LoL, Minecraft",
+            required=True,
+            max_length=200
+        )
+        self.add_item(self.games_input)
 
-    async def callback(self, interaction: discord.Interaction):
-        self.selected_roles = self.values
-        await interaction.response.defer()
-
-
-class FinishButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(label="Finalizar", style=discord.ButtonStyle.green)
-
-    async def callback(self, interaction: discord.Interaction):
-        select: GamesSelect = self.view.games_select
-        if not select.selected_roles:
-            await interaction.response.send_message("⚠️ Debes seleccionar al menos un juego.", ephemeral=True)
-            return
-
-        # Asignar roles de videojuegos
-        for role_name in select.selected_roles:
-            role = discord.utils.get(interaction.guild.roles, name=role_name)
+    async def on_submit(self, interaction: discord.Interaction):
+        games = [g.strip() for g in self.games_input.value.split(",")]
+        for game_name in games:
+            role = discord.utils.get(interaction.guild.roles, name=game_name)
             if role:
                 await interaction.user.add_roles(role)
 
-        # Mensaje de confirmación
-        await interaction.response.send_message("✅ Todos tus roles han sido asignados. ¡Disfruta!", ephemeral=True)
+        await interaction.response.send_message(
+            "✅ Todos tus roles han sido asignados. ¡Disfruta!",
+            ephemeral=True
+        )
 
         # Eliminar canal temporal
-        await interaction.channel.delete(reason="Usuario terminó de seleccionar roles")
+        await self.view.temp_channel.delete(reason="Usuario completó la selección de roles")
+
+
+class RoleSelectView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.temp_channel = None
+
+    @discord.ui.button(label="Iniciar selección de roles", style=discord.ButtonStyle.blurple)
+    async def start_roles(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(PlatformModal(self))
+
+
+# ---- COMANDO ----
+@commands.command()
+async def roles(ctx):
+    view = RoleSelectView()
+    await ctx.send("🎮 Pulsa el botón para seleccionar tus roles y juegos:", view=view)
 
 
 # ----------------------------
@@ -729,6 +737,7 @@ bot.add_command(embed_command)
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
