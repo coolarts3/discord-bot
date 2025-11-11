@@ -184,12 +184,14 @@ async def lfg(ctx, juego: str = None, jugadores: int = None):
     text_channel = await guild.create_text_channel(f"partida-{juego.lower()}", overwrites=overwrites, category=category)
     voice_channel = await guild.create_voice_channel(f"🎮 {juego}", overwrites=overwrites, category=category)
 
+    # Mensaje inicial, guardado para eliminar luego
     starter_message = await text_channel.send(
-    f"✅ **Partida lista:** {', '.join([p.mention for p in jugadores_actuales])}\n"
-    f"Canal de voz: {voice_channel.mention}\n"
-    f"⏱️ Estos canales se eliminarán tras 5 minutos de inactividad."
-)
+        f"✅ **Partida lista:** {', '.join([p.mention for p in jugadores_actuales])}\n"
+        f"Canal de voz: {voice_channel.mention}\n"
+        f"⏱️ Estos canales se eliminarán tras 5 minutos de inactividad."
+    )
 
+    # Borrar automáticamente después de 5 segundos
     await starter_message.delete(delay=5)
 
     # Monitorear inactividad
@@ -569,6 +571,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
