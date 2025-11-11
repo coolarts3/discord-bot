@@ -721,28 +721,22 @@ async def embed_command(ctx):
 
 bot.add_command(embed_command)
 
+# -------------------------------
+# MODALES DE REPORTES
+# -------------------------------
 class PersonaModal(discord.ui.Modal):
     def __init__(self):
         super().__init__(title="Reporte de Persona")
-
-        # Texto para nombre de la persona
-        self.add_item(discord.ui.TextInput(
-            label="Nombre de la persona reportada",
-            placeholder="Usuario#1234"
-        ))
-
-        # Texto para descripción
-        self.add_item(discord.ui.TextInput(
-            label="Descripción del reporte",
-            style=discord.TextStyle.paragraph
-        ))
+        self.add_item(discord.ui.TextInput(label="Nombre de la persona reportada", placeholder="Usuario#1234"))
+        self.add_item(discord.ui.TextInput(label="Descripción del reporte", style=discord.TextStyle.paragraph))
 
     async def on_submit(self, interaction: discord.Interaction):
         nombre = self.children[0].value
         descripcion = self.children[1].value
-        await interaction.response.send_message(f"✅ Tu reporte de {nombre} ha sido enviado.", ephemeral=True)
 
-        # Crear canal temporal para el reporte
+        await interaction.response.defer()  # Marca como respondida
+
+        # Crear canal privado
         guild = interaction.guild
         category = discord.utils.get(guild.categories, name="𝕊𝕆ℙ𝕆ℝ𝕋𝔼")
         if not category:
@@ -756,34 +750,34 @@ class PersonaModal(discord.ui.Modal):
             name=f"reporte-{interaction.user.name}", overwrites=overwrites, category=category
         )
 
-        embed = discord.Embed(title=f"Reporte de Persona: {nombre}", description=descripcion, color=discord.Color.red())
-        embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
-        await report_channel.send(embed=embed)
-        await interaction.response.send_message(f"✅ Tu reporte de {nombre} ha sido enviado.", ephemeral=True)
-        view = CloseTicketButton(ticket_owner=interaction.user)
-        await report_channel.send("📌 Aquí está tu ticket. Pulsa el botón para cerrarlo cuando hayas terminado.",
-        view=view
+        # Enviar embed con la info
+        embed = discord.Embed(
+            title=f"Reporte de Persona: {nombre}",
+            description=descripcion,
+            color=discord.Color.red()
         )
+        embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+        await report_channel.send(embed=embed)
+
+        # Botón de cerrar ticket
+        view = CloseTicketButton(ticket_owner=interaction.user)
+        await report_channel.send("📌 Pulsa el botón para cerrar este ticket.", view=view)
+
+        # Mensaje de confirmación al usuario
+        await interaction.followup.send(f"✅ Tu reporte de {nombre} ha sido enviado.", ephemeral=True)
 
 
 class BugModal(discord.ui.Modal):
     def __init__(self):
         super().__init__(title="Reporte de Bug")
-
-        self.add_item(discord.ui.TextInput(
-            label="Descripción del bug",
-            style=discord.TextStyle.paragraph
-        ))
-
-        self.add_item(discord.ui.TextInput(
-            label="Pasos para reproducir",
-            style=discord.TextStyle.paragraph
-        ))
+        self.add_item(discord.ui.TextInput(label="Descripción del bug", style=discord.TextStyle.paragraph))
+        self.add_item(discord.ui.TextInput(label="Pasos para reproducir", style=discord.TextStyle.paragraph))
 
     async def on_submit(self, interaction: discord.Interaction):
         descripcion = self.children[0].value
         pasos = self.children[1].value
-        await interaction.response.send_message("✅ Tu reporte de bug ha sido enviado.", ephemeral=True)
+
+        await interaction.response.defer()
 
         guild = interaction.guild
         category = discord.utils.get(guild.categories, name="𝕊𝕆ℙ𝕆ℝ𝕋𝔼")
@@ -794,19 +788,20 @@ class BugModal(discord.ui.Modal):
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(view_channel=True)
         }
+
         report_channel = await guild.create_text_channel(
             name=f"reporte-bug-{interaction.user.name}", overwrites=overwrites, category=category
         )
 
         embed = discord.Embed(title="Reporte de Bug", description=descripcion, color=discord.Color.orange())
         embed.add_field(name="Pasos para reproducir", value=pasos, inline=False)
-        embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
+        embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
         await report_channel.send(embed=embed)
-        await interaction.response.send_message("✅ Tu reporte de bug ha sido enviado.", ephemeral=True)
+
         view = CloseTicketButton(ticket_owner=interaction.user)
-        await report_channel.send("📌 Aquí está tu ticket. Pulsa el botón para cerrarlo cuando hayas terminado.",
-        view=view
-        )
+        await report_channel.send("📌 Pulsa el botón para cerrar este ticket.", view=view)
+
+        await interaction.followup.send("✅ Tu reporte de bug ha sido enviado.", ephemeral=True)
 
 
 # -------------------------------
@@ -826,9 +821,12 @@ class ReportButtonView(discord.ui.View):
 
     @discord.ui.button(label="Información", style=discord.ButtonStyle.secondary)
     async def info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(BugModal())  # Puedes crear un InfoModal diferente
+        await interaction.response.send_message("ℹ️ Aquí podrías añadir otro modal o info.", ephemeral=True)
 
-#boton cerrar canal
+
+# -------------------------------
+# BOTÓN DE CERRAR TICKET
+# -------------------------------
 class CloseTicketButton(discord.ui.View):
     def __init__(self, ticket_owner):
         super().__init__(timeout=None)
@@ -836,21 +834,25 @@ class CloseTicketButton(discord.ui.View):
 
     @discord.ui.button(label="🔒 Cerrar ticket", style=discord.ButtonStyle.red)
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Solo el dueño del ticket o un administrador puede cerrar
         if interaction.user != self.ticket_owner and not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("❌ Solo el creador o un admin puede cerrar este ticket.", ephemeral=True)
             return
 
-        # Opción 1: eliminar el canal directamente
         await interaction.channel.delete(reason="Ticket cerrado")
 
+
 # -------------------------------
-# COMANDO PARA ENVIAR MENSAJE FIJO
+# COMANDO PARA CREAR MENSAJE FIJO
 # -------------------------------
+DEFAULT_REPORTE_CHANNEL_ID = 1437945939091394721  # Pon aquí tu canal por defecto
+
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def crear_reporte(ctx, canal: discord.TextChannel):
+async def crear_reporte(ctx, canal: discord.TextChannel = None):
     """Crea un mensaje fijo con botones de reporte en un canal específico"""
+    if canal is None:
+        canal = ctx.guild.get_channel(DEFAULT_REPORTE_CHANNEL_ID)
+
     view = ReportButtonView()
     mensaje = await canal.send("📌 Usa los botones para crear un reporte:", view=view)
     await mensaje.pin()
@@ -860,6 +862,7 @@ async def crear_reporte(ctx, canal: discord.TextChannel):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
