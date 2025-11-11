@@ -98,12 +98,13 @@ async def on_message(message):
     # Lista de IDs de canales donde solo se permiten comandos
     canales_restringidos = [1437551679770857542, 1437833190076317806]  # reemplaza con tus IDs
 
-    if message.channel.id in canales_restringidos:
+    # Solo borrar mensajes que NO sean comandos
+    if message.channel.id in canales_restringidos and not message.content.startswith(bot.command_prefix):
         try:
             await message.delete()
         except Exception as e:
             print(f"⚠️ No se pudo eliminar mensaje: {e}")
-        return  # Evitar que siga procesando comandos si quieres
+        return
 
     # Procesar comandos normalmente
     await bot.process_commands(message)
@@ -571,6 +572,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
