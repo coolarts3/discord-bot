@@ -328,7 +328,7 @@ async def limpiar(ctx, cantidad: int):
 # ----------------------------
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def aviso(ctx, *, mensaje):
+async def aviso(ctx, *, mensaje, member: discord.Member):
     # Borra el último mensaje de aviso enviado por el bot
     async for msg in ctx.channel.history(limit=100):
         if msg.author == member:
@@ -347,7 +347,7 @@ async def aviso(ctx, *, mensaje):
 # ----------------------------
 
 @bot.command()
-async def say(ctx, *, mensaje):
+async def say(ctx, *, mensaje, member: discord.Member):
     async for msg in ctx.channel.history(limit=100):
         if msg.author == member:
             await msg.delete()
@@ -359,6 +359,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
