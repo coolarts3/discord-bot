@@ -759,14 +759,11 @@ class PersonaModal(discord.ui.Modal):
         embed = discord.Embed(title=f"Reporte de Persona: {nombre}", description=descripcion, color=discord.Color.red())
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
         await report_channel.send(embed=embed)
-        await interaction.response.send_message(f"✅ Tu reporte de {nombre} ha sido enviado.", ephemeral=True)
-
-# ✅ Añadir botón para cerrar el ticket
-view = CloseTicketButton(ticket_owner=interaction.user)
-await report_channel.send(
-    "📌 Aquí está tu ticket. Pulsa el botón para cerrarlo cuando hayas terminado.",
-    view=view
-)
+        await interaction.response.send_message(f"✅ Tu reporte de {nombre} ha sido enviado.", ephemeral=True)ç
+        view = CloseTicketButton(ticket_owner=interaction.user)
+        await report_channel.send("📌 Aquí está tu ticket. Pulsa el botón para cerrarlo cuando hayas terminado.",
+        view=view
+        )
 
 
 class BugModal(discord.ui.Modal):
@@ -806,13 +803,10 @@ class BugModal(discord.ui.Modal):
         embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
         await report_channel.send(embed=embed)
         await interaction.response.send_message("✅ Tu reporte de bug ha sido enviado.", ephemeral=True)
-
-# ✅ Añadir botón para cerrar el ticket
-view = CloseTicketButton(ticket_owner=interaction.user)
-await report_channel.send(
-    "📌 Aquí está tu ticket. Pulsa el botón para cerrarlo cuando hayas terminado.",
-    view=view
-)
+        view = CloseTicketButton(ticket_owner=interaction.user)
+        await report_channel.send("📌 Aquí está tu ticket. Pulsa el botón para cerrarlo cuando hayas terminado.",
+        view=view
+        )
 
 
 # -------------------------------
@@ -866,6 +860,7 @@ async def crear_reporte(ctx, canal: discord.TextChannel):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
