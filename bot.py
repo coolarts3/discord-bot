@@ -349,6 +349,9 @@ async def roles(ctx):
     view = RoleSelectView()
     await ctx.send("🎮 Pulsa el botón para seleccionar tus roles y juegos:", view=view)
 
+@bot.command()
+async def roles(ctx)
+
 
 # ----------------------------
 # CREAR CANAL DE VOZ PARTIDA
@@ -688,6 +691,7 @@ bot.add_command(embed_command)
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
