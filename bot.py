@@ -328,12 +328,14 @@ async def limpiar(ctx, cantidad: int):
 # ----------------------------
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def aviso(ctx, *, mensaje, member: discord.Member):
+async def aviso(ctx, *, mensaje):
     # Borra el último mensaje de aviso enviado por el bot
     async for msg in ctx.channel.history(limit=100):
-        if msg.author == member:
-            await msg.delete()
-            break
+        try:
+        # Borrar el mensaje del usuario que ejecuta el comando
+        await ctx.message.delete()
+    except discord.Forbidden:
+        pass  # No tiene permisos para borrar mensajes
 
     embed = discord.Embed(
         title="📢 Aviso del Staff",
@@ -347,18 +349,21 @@ async def aviso(ctx, *, mensaje, member: discord.Member):
 # ----------------------------
 
 @bot.command()
-async def say(ctx, *, mensaje, member: discord.Member):
-    async for msg in ctx.channel.history(limit=100):
-        if msg.author == member:
-            await msg.delete()
-            break
-            
+async def say(ctx, *, mensaje):
+    try:
+        # Borrar el mensaje del usuario que ejecuta el comando
+        await ctx.message.delete()
+    except discord.Forbidden:
+        pass  # No tiene permisos para borrar mensajes
+
+    # Enviar el mensaje con el bot
     await ctx.send(mensaje)
 
 # ----------------------------
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
