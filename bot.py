@@ -38,7 +38,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 last_activity = None
 
 # ⏱️ Cada cuántos minutos se enviará el aviso
-INTERVALO_AVISO = 1
+INTERVALO_AVISO = 50
 
 # 📢 Canal donde se envían los avisos (pon tu ID real)
 CANAL_AVISO_ID = 1437188675225124874
@@ -415,6 +415,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
