@@ -112,11 +112,12 @@ async def on_message(message):
 #CREACION DE PARTIDAS POR ROL
 
 # ID del canal donde se puede usar este comando
-LFG_CHANNEL_ID = 1437833190076317806  # 🔁 cámbialo por el ID de tu canal permitido
+LFG_CHANNEL_ID = 1437833190076317806  # Reemplaza con el ID del canal de LFG
 
 @bot.command()
 async def lfg(ctx, juego: str = None, jugadores: str = None):
     """Busca grupo para un juego."""
+    # Verificar canal permitido
     if ctx.channel.id != LFG_CHANNEL_ID:
         msg = await ctx.send("❌ Este comando solo puede usarse en el canal designado.")
         await asyncio.sleep(5)
@@ -124,8 +125,10 @@ async def lfg(ctx, juego: str = None, jugadores: str = None):
         await ctx.message.delete()
         return
 
+    # Borrar el comando original
     await ctx.message.delete()
 
+    # Validar argumentos
     if not juego or not jugadores:
         msg = await ctx.send("⚠️ Uso correcto: `!lfg <nombre_del_juego> <número_de_jugadores>`")
         await asyncio.sleep(5)
@@ -145,17 +148,16 @@ async def lfg(ctx, juego: str = None, jugadores: str = None):
     # Llamar a la función que maneja la búsqueda de grupo
     await buscar_grupo(ctx, juego, jugadores)
 
-    # Crear anuncio
+
 async def buscar_grupo(ctx, juego: str, jugadores: int):
-    # Enviar mensaje de anuncio
+    # Enviar mensaje de anuncio que se borrará automáticamente tras 5 minutos
     anuncio = await ctx.send(
         f"🎮 **{ctx.author.display_name}** busca grupo de **{jugadores}** personas para **{juego}**.\n"
         f"Reacciona con 🎮 para unirte a la espera.",
-        delete_after=300  # Se borrará automáticamente después de 5 minutos
+        delete_after=300  # 5 minutos
     )
     await anuncio.add_reaction("🎮")
 
-    # Lista de jugadores inicial
     jugadores_actuales = [ctx.author]
 
     # Función para comprobar la reacción
@@ -167,16 +169,20 @@ async def buscar_grupo(ctx, juego: str, jugadores: int):
             and not user.bot
         )
 
+    # Esperar jugadores
     while len(jugadores_actuales) < jugadores:
         try:
             reaction, user = await bot.wait_for("reaction_add", timeout=300.0, check=check_reaction)
         except asyncio.TimeoutError:
             await ctx.send("⌛ La búsqueda de grupo ha expirado por inactividad.")
-            await anuncio.delete()
+            try:
+                await anuncio.delete()
+            except:
+                pass
             return
         else:
             jugadores_actuales.append(user)
-            msg = await ctx.send(f"✅ {user.display_name} se ha unido a la búsqueda ({len(jugadores_actuales)}/{jugadores})")
+            msg = await ctx.send(f"✅ {user.display_name} se ha unido ({len(jugadores_actuales)}/{jugadores})")
             await asyncio.sleep(3)
             await msg.delete()
 
@@ -186,16 +192,14 @@ async def buscar_grupo(ctx, juego: str, jugadores: int):
     if not category:
         category = await guild.create_category("𝓟𝓐𝓡𝓣𝓘𝓓𝓐𝓢 🖱️")
 
-    overwrites = {
-        guild.default_role: discord.PermissionOverwrite(view_channel=False),
-    }
+    overwrites = {guild.default_role: discord.PermissionOverwrite(view_channel=False)}
     for player in jugadores_actuales:
         overwrites[player] = discord.PermissionOverwrite(view_channel=True, connect=True, send_messages=True)
 
     text_channel = await guild.create_text_channel(f"partida-{juego.lower()}", overwrites=overwrites, category=category)
     voice_channel = await guild.create_voice_channel(f"🎮 {juego}", overwrites=overwrites, category=category)
 
-    # Mensaje inicial, guardado para eliminar luego
+    # Mensaje inicial
     starter_message = await text_channel.send(
         f"✅ **Partida lista:** {', '.join([p.mention for p in jugadores_actuales])}\n"
         f"Canal de voz: {voice_channel.mention}\n"
@@ -203,27 +207,21 @@ async def buscar_grupo(ctx, juego: str, jugadores: int):
     )
 
     # Monitorear inactividad
-    await monitor_inactividad(ctx.bot, text_channel, voice_channel, timeout=300)
+    await monitor_inactividad(ctx.bot, text_channel, voice_channel, starter_message, timeout=300)
 
 
-async def monitor_inactividad(bot, text_channel, voice_channel, timeout=300):
-    """
-    Monitorea la inactividad en los canales creados automáticamente.
-    Si no hay actividad durante 'timeout' segundos (por defecto 5 minutos),
-    los elimina junto con el mensaje inicial si existe.
-    """
-    print(f"👀 Monitorizando actividad en {text_channel.name} y {voice_channel.name}...")
-
+async def monitor_inactividad(bot, text_channel, voice_channel, starter_message, timeout=300):
+    print(f"👀 Monitorizando {text_channel.name} y {voice_channel.name}...")
     last_message_time = datetime.utcnow()
 
     while True:
-        await asyncio.sleep(30)  # Revisa cada 30 segundos
+        await asyncio.sleep(30)
         now = datetime.utcnow()
 
-        # Verifica si hay alguien conectado en el canal de voz
+        # Verificar si hay alguien en el canal de voz
         voice_active = any(member for member in voice_channel.members if not member.bot)
 
-        # Obtiene los últimos mensajes del canal de texto
+        # Revisar último mensaje de usuario en el canal de texto
         try:
             async for message in text_channel.history(limit=1):
                 if message.author != bot.user:
@@ -231,24 +229,25 @@ async def monitor_inactividad(bot, text_channel, voice_channel, timeout=300):
         except:
             pass
 
-        # Si no hay actividad ni usuarios conectados durante el timeout...
+        # Si no hay actividad ni usuarios
         if (not voice_active) and (now - last_message_time).total_seconds() > timeout:
-            await text_channel.send("💤 Eliminando canales por inactividad...")
-            await asyncio.sleep(3)
+            try:
+                await text_channel.send("💤 Eliminando canales por inactividad...")
+                await asyncio.sleep(3)
+                await starter_message.delete()
+            except:
+                pass
 
-            # 🆕 Eliminar el mensaje de anuncio si aún existe
-            if hasattr(text_channel, "starter_message"):
-                try:
-                    await starter_message.delete()
-                except Exception as e:
-                    print(f"⚠️ No se pudo eliminar el mensaje inicial: {e}")
-
+            # Eliminar canales
             try:
                 await text_channel.delete()
+            except discord.NotFound:
+                print(f"⚠️ Canal {text_channel.name} ya no existe.")
+            try:
                 await voice_channel.delete()
-                print(f"🗑️ Canales {text_channel.name} y {voice_channel.name} eliminados por inactividad.")
-            except Exception as e:
-                print(f"⚠️ Error al eliminar canales: {e}")
+            except discord.NotFound:
+                print(f"⚠️ Canal {voice_channel.name} ya no existe.")
+            print(f"🗑️ Canales {text_channel.name} y {voice_channel.name} eliminados por inactividad.")
             return
 
 # ----------------------------
@@ -579,6 +578,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
