@@ -171,7 +171,7 @@ async def lfg(ctx, juego: str = None, jugadores: int = None):
     )
 
     # Monitorear inactividad
-    await monitor_inactividad(text_channel, voice_channel, timeout=300)
+    await monitor_inactividad(ctx.bot, text_channel, voice_channel, timeout=300)
 
 
 async def monitor_inactividad(bot, text_channel, voice_channel, timeout=300):
@@ -547,6 +547,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
