@@ -369,7 +369,15 @@ class GamesButtons(discord.ui.View):
 @commands.command()
 async def roles(ctx):
     view = RoleSelectView(ctx.author)
-    await ctx.send("🎮 Pulsa los botones para seleccionar tus roles y juegos:", view=view)
+    try:
+        # Enviar menú al DM del usuario
+        await ctx.author.send("🎮 Pulsa los botones para seleccionar tus roles y juegos:", view=view)
+        
+        # Borrar el comando original del canal público
+        await ctx.message.delete()
+    except discord.Forbidden:
+        # Si no se pueden enviar DMs, avisar en el canal público
+        await ctx.send("❌ No puedo enviarte mensajes privados. Revisa tu configuración de DMs.")
 
 bot.add_command(roles)
 
@@ -712,6 +720,7 @@ bot.add_command(embed_command)
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
