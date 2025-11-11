@@ -342,15 +342,13 @@ class RoleSelectView(discord.ui.View):
     async def start_roles(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(PlatformModal(self))
 
+bot.add_command(roles)
 
 # ---- COMANDO ----
 @commands.command()
 async def roles(ctx):
     view = RoleSelectView()
     await ctx.send("🎮 Pulsa el botón para seleccionar tus roles y juegos:", view=view)
-
-@bot.command()
-async def roles(ctx)
 
 
 # ----------------------------
@@ -691,6 +689,7 @@ bot.add_command(embed_command)
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
