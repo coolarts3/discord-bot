@@ -44,21 +44,33 @@ INTERVALO_AVISO = 5
 # 📢 Canal donde se envían los avisos (pon tu ID real)
 CANAL_AVISO_ID = 1437188675225124874
 
+
 @tasks.loop(minutes=INTERVALO_AVISO)
 async def aviso_automatico():
     """Envía un aviso cada cierto tiempo solo si hubo actividad reciente"""
     global last_activity
+    print("⏰ Ejecutando ciclo de aviso automático...")
 
     if last_activity is None:
-        return  # Nadie ha hablado aún
+        print("⚠️ Ninguna actividad registrada todavía.")
+        return
 
-    # Comprobar si hubo actividad en el intervalo
+    tiempo_inactivo = (datetime.utcnow() - last_activity).total_seconds() / 60
+    print(f"🕐 Tiempo desde última actividad: {tiempo_inactivo:.1f} min")
+
     if datetime.utcnow() - last_activity < timedelta(minutes=INTERVALO_AVISO):
         canal = bot.get_channel(CANAL_AVISO_ID)
         if canal:
-            await canal.send("📢 @everyone  ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil de juegos y plataforma!")
+            try:
+                await canal.send("📢 @everyone ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil de juegos y plataforma!")
+                print("✅ Aviso enviado correctamente.")
+            except Exception as e:
+                print(f"❌ Error al enviar aviso: {e}")
+        else:
+            print(f"⚠️ Canal con ID {CANAL_AVISO_ID} no encontrado.")
     else:
         print("💤 Sin actividad reciente, no se envía aviso.")
+
 
 @aviso_automatico.before_loop
 async def before_aviso():
@@ -69,19 +81,17 @@ async def before_aviso():
 @bot.event
 async def on_ready():
     print(f"✅ Bot conectado como {bot.user}")
-    aviso_automatico.start()  # Inicia la tarea de avisos
+    aviso_automatico.start()
+
+
 @bot.event
 async def on_message(message):
     global last_activity
 
-    # Ignorar mensajes del bot
     if message.author.bot:
         return
 
-    # Actualiza el registro de actividad
     last_activity = datetime.utcnow()
-
-    # Permite que funcionen los comandos
     await bot.process_commands(message)
 
 #ELIMINACION DE MENSAJES NO COMANDOS    
@@ -684,6 +694,7 @@ async def embed(ctx):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
