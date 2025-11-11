@@ -229,17 +229,17 @@ async def crearpartida(ctx):
 
     # Autoeliminar cuando quede vacío
     while True:
-        await asyncio.sleep(10)
-        if len(voice_channel.members) == 0:
-            await text_channel.delete()
-            await voice_channel.delete()
-            # Eliminar mensaje del bot
-            try:
+    await asyncio.sleep(10)
+    if len(voice_channel.members) == 0:
+        await text_channel.delete()
+        await voice_channel.delete()
+        # Eliminar mensaje del bot
+        try:
             await bot_message.delete()
         except discord.Forbidden:
             pass  # No tiene permisos para borrar mensaje
-            print(f"🗑️ Canales de {ctx.author.name} eliminados automáticamente.")
-            break
+        print(f"🗑️ Canales de {ctx.author.name} eliminados automáticamente.")
+        break
 
 
 # ----------------------------
@@ -370,6 +370,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
