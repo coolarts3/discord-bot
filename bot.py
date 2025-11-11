@@ -573,75 +573,118 @@ async def say(ctx, *, mensaje):
 
 #embed creation
 
-class EmbedModal(discord.ui.Modal, title="Crear/Editar Embed"):
+class EmbedTextModal(discord.ui.Modal, title="📝 Editar texto del embed"):
     def __init__(self, view):
         super().__init__()
         self.view = view
 
-        self.title_input = discord.ui.TextInput(
-            label="Título",
-            placeholder="Escribe el título del embed...",
-            required=False,
-            max_length=256,
-        )
+        self.title_input = discord.ui.TextInput(label="Título", required=False, max_length=256)
         self.description_input = discord.ui.TextInput(
-            label="Descripción",
-            style=discord.TextStyle.paragraph,
-            placeholder="Texto descriptivo del embed...",
-            required=False,
-            max_length=2000,
+            label="Descripción", style=discord.TextStyle.paragraph, required=False, max_length=2000
         )
-        self.footer_input = discord.ui.TextInput(
-            label="Pie de página (footer)",
-            placeholder="Texto del footer...",
-            required=False,
-            max_length=256,
-        )
+        self.footer_input = discord.ui.TextInput(label="Pie de página (footer)", required=False, max_length=256)
 
         self.add_item(self.title_input)
         self.add_item(self.description_input)
         self.add_item(self.footer_input)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Actualiza el embed con los datos del modal
-        self.view.embed.title = self.title_input.value
-        self.view.embed.description = self.description_input.value
-        self.view.embed.set_footer(text=self.footer_input.value)
+        self.view.embed.title = self.title_input.value or self.view.embed.title
+        self.view.embed.description = self.description_input.value or self.view.embed.description
+        if self.footer_input.value:
+            self.view.embed.set_footer(text=self.footer_input.value)
+        await interaction.response.edit_message(embed=self.view.embed, view=self.view)
+
+
+# 🖼️ MODAL PARA IMÁGENES
+class EmbedImageModal(discord.ui.Modal, title="🖼️ Añadir imágenes"):
+    def __init__(self, view):
+        super().__init__()
+        self.view = view
+
+        self.image_input = discord.ui.TextInput(
+            label="Imagen principal (URL)",
+            placeholder="https://example.com/imagen.png",
+            required=False,
+        )
+        self.thumb_input = discord.ui.TextInput(
+            label="Imagen lateral (thumbnail)",
+            placeholder="https://example.com/miniatura.png",
+            required=False,
+        )
+
+        self.add_item(self.image_input)
+        self.add_item(self.thumb_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.image_input.value:
+            self.view.embed.set_image(url=self.image_input.value)
+        if self.thumb_input.value:
+            self.view.embed.set_thumbnail(url=self.thumb_input.value)
 
         await interaction.response.edit_message(embed=self.view.embed, view=self.view)
 
 
+# 🎨 MODAL PARA COLOR
+class EmbedColorModal(discord.ui.Modal, title="🎨 Elegir color del embed"):
+    def __init__(self, view):
+        super().__init__()
+        self.view = view
+        self.color_input = discord.ui.TextInput(
+            label="Color en formato HEX (#rrggbb)",
+            placeholder="#1c72ff",
+            required=True,
+            max_length=7,
+        )
+        self.add_item(self.color_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            self.view.embed.color = discord.Color(int(self.color_input.value.replace("#", ""), 16))
+        except ValueError:
+            await interaction.response.send_message("⚠️ Formato de color inválido. Usa algo como #1c72ff", ephemeral=True)
+            return
+
+        await interaction.response.edit_message(embed=self.view.embed, view=self.view)
+
+
+# 🎛️ MENÚ PRINCIPAL DEL CONSTRUCTOR
 class EmbedBuilderView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=300)
-        self.embed = discord.Embed(title="Nuevo Embed", description="Haz clic en los botones para editar.")
+        self.embed = discord.Embed(title="Nuevo Embed", description="Haz clic en los botones para editar.", color=discord.Color.blurple())
 
-    @discord.ui.button(label="📝 Editar texto", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="📝 Texto", style=discord.ButtonStyle.primary)
     async def edit_text(self, interaction: discord.Interaction, button: discord.ui.Button):
-        modal = EmbedModal(self)
-        await interaction.response.send_modal(modal)
+        await interaction.response.send_modal(EmbedTextModal(self))
 
-    @discord.ui.button(label="🖼️ Imagen", style=discord.ButtonStyle.secondary)
-    async def set_image(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("📸 Envíame la URL de la imagen para el embed.", ephemeral=True)
+    @discord.ui.button(label="🖼️ Imágenes", style=discord.ButtonStyle.secondary)
+    async def edit_images(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(EmbedImageModal(self))
 
-    @discord.ui.button(label="✅ Publicar", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="🎨 Color", style=discord.ButtonStyle.success)
+    async def edit_color(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(EmbedColorModal(self))
+
+    @discord.ui.button(label="✅ Publicar", style=discord.ButtonStyle.danger)
     async def publish(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message(embed=self.embed)
+        await interaction.channel.send(embed=self.embed)
         await interaction.message.delete()
 
 
+# 🔒 COMANDO PARA ADMINISTRADORES
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def embed(ctx):
-    """Crea un menú interactivo con modales para construir un embed"""
+    """Abre el menú visual de creación de embeds"""
     view = EmbedBuilderView()
-    await ctx.send("🧱 **Creador de Embeds** — Usa los botones para editar:", view=view, embed=view.embed)
+    await ctx.send("🧱 **Creador de Embeds** — Usa los botones de abajo para editar.", view=view, embed=view.embed)
 
 # ----------------------------
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
