@@ -200,7 +200,7 @@ async def monitor_inactividad(text_channel, voice_channel, timeout=300):
 
     await text_channel.delete()
     await voice_channel.delete()
-    break
+    return
 
 # ----------------------------
 # MENÚ DE SELECCIÓN DE ROLES
@@ -530,6 +530,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
