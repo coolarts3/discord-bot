@@ -721,10 +721,103 @@ async def embed_command(ctx):
 
 bot.add_command(embed_command)
 
+class PersonaModal(discord.ui.Modal):
+    def __init__(self):
+        super().__init__(title="Reporte de Persona")
+        self.add_item(discord.ui.InputText(label="Nombre de la persona reportada", placeholder="Usuario#1234"))
+        self.add_item(discord.ui.InputText(label="Descripción del reporte", style=discord.InputTextStyle.paragraph))
+
+    async def on_submit(self, interaction: discord.Interaction):
+        nombre = self.children[0].value
+        descripcion = self.children[1].value
+
+        # Crear canal temporal para el reporte
+        guild = interaction.guild
+        category = discord.utils.get(guild.categories, name="📄 Reportes")
+        if not category:
+            category = await guild.create_category("📄 Reportes")
+
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            interaction.user: discord.PermissionOverwrite(view_channel=True)
+        }
+        report_channel = await guild.create_text_channel(
+            name=f"reporte-{interaction.user.name}", overwrites=overwrites, category=category
+        )
+
+        embed = discord.Embed(title=f"Reporte de Persona: {nombre}", description=descripcion, color=discord.Color.red())
+        embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
+        await report_channel.send(embed=embed)
+        await interaction.response.send_message(f"✅ Tu reporte de {nombre} ha sido enviado.", ephemeral=True)
+
+
+class BugModal(discord.ui.Modal):
+    def __init__(self):
+        super().__init__(title="Reporte de Bug")
+        self.add_item(discord.ui.InputText(label="Descripción del bug", style=discord.InputTextStyle.paragraph))
+        self.add_item(discord.ui.InputText(label="Pasos para reproducir", style=discord.InputTextStyle.paragraph))
+
+    async def on_submit(self, interaction: discord.Interaction):
+        descripcion = self.children[0].value
+        pasos = self.children[1].value
+
+        guild = interaction.guild
+        category = discord.utils.get(guild.categories, name="📄 Reportes")
+        if not category:
+            category = await guild.create_category("📄 Reportes")
+
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            interaction.user: discord.PermissionOverwrite(view_channel=True)
+        }
+        report_channel = await guild.create_text_channel(
+            name=f"reporte-bug-{interaction.user.name}", overwrites=overwrites, category=category
+        )
+
+        embed = discord.Embed(title="Reporte de Bug", description=descripcion, color=discord.Color.orange())
+        embed.add_field(name="Pasos para reproducir", value=pasos, inline=False)
+        embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
+        await report_channel.send(embed=embed)
+        await interaction.response.send_message("✅ Tu reporte de bug ha sido enviado.", ephemeral=True)
+
+
+# -------------------------------
+# BOTONES DEL MENSAJE FIJO
+# -------------------------------
+class ReportButtonView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Persona", style=discord.ButtonStyle.danger)
+    async def persona_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(PersonaModal())
+
+    @discord.ui.button(label="Bug", style=discord.ButtonStyle.primary)
+    async def bug_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(BugModal())
+
+    @discord.ui.button(label="Información", style=discord.ButtonStyle.secondary)
+    async def info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(BugModal())  # Puedes crear un InfoModal diferente
+
+
+# -------------------------------
+# COMANDO PARA ENVIAR MENSAJE FIJO
+# -------------------------------
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def crear_reporte(ctx, canal: discord.TextChannel):
+    """Crea un mensaje fijo con botones de reporte en un canal específico"""
+    view = ReportButtonView()
+    mensaje = await canal.send("📌 Usa los botones para crear un reporte:", view=view)
+    await mensaje.pin()
+    await ctx.send(f"✅ Mensaje de reporte creado en {canal.mention}", delete_after=5)
+
 # ----------------------------
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
