@@ -583,127 +583,150 @@ async def say(ctx, *, mensaje):
 
 #embed creation
 
-class EmbedBuilder(discord.ui.View):
-    def __init__(self, author: discord.Member):
-        super().__init__(timeout=300)
+class EmbedCreator(View):
+    def __init__(self, author):
+        super().__init__(timeout=600)
         self.author = author
-        self.embed = discord.Embed(title="Nuevo Embed", description="Pulsa los botones para editar.", color=discord.Color.blue())
+        self.embed = discord.Embed(title="Título del embed", description="Descripción aquí...", color=discord.Color.blue())
         self.message = None
+        self.messages_to_clean = []
 
     async def interaction_check(self, interaction: discord.Interaction):
         if interaction.user != self.author:
-            await interaction.response.send_message("❌ Solo el creador puede usar este menú.", ephemeral=True)
+            await interaction.response.send_message("❌ Solo el creador del embed puede usar este menú.", ephemeral=True)
             return False
         return True
 
     @discord.ui.button(label="📝 Título", style=discord.ButtonStyle.primary)
     async def set_title(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(EmbedTextModal(self, field="title", title="Editar Título"))
+        await interaction.response.send_modal(EmbedFieldModal(self, "title", "Editar título", "Escribe el nuevo título"))
 
     @discord.ui.button(label="💬 Descripción", style=discord.ButtonStyle.primary)
     async def set_description(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(EmbedTextModal(self, field="description", title="Editar Descripción"))
+        await interaction.response.send_modal(EmbedFieldModal(self, "description", "Editar descripción", "Escribe la descripción"))
 
     @discord.ui.button(label="🖼️ Imágenes", style=discord.ButtonStyle.primary)
     async def set_images(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(EmbedImageModal(self))
+        await interaction.response.send_modal(EmbedImagesModal(self))
 
-    @discord.ui.button(label="🦶 Footer", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="🎨 Color", style=discord.ButtonStyle.secondary)
+    async def set_color(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(EmbedColorModal(self))
+
+    @discord.ui.button(label="🦶 Footer", style=discord.ButtonStyle.secondary)
     async def set_footer(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(EmbedTextModal(self, field="footer", title="Editar Footer"))
+        await interaction.response.send_modal(EmbedFieldModal(self, "footer", "Editar footer", "Texto del pie de página"))
 
     @discord.ui.button(label="📤 Publicar", style=discord.ButtonStyle.success)
-    async def publish(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def publish_embed(self, interaction: discord.Interaction, button: discord.ui.Button):
         channels = [
             discord.SelectOption(label=ch.name, value=str(ch.id))
             for ch in interaction.guild.text_channels
         ]
+        select_view = PublishSelect(self, channels)
+        await interaction.response.send_message("📨 Selecciona el canal donde publicar el embed:", view=select_view, ephemeral=True)
 
-        select = ChannelSelect(self, channels)
-        await interaction.response.send_message("📨 Selecciona el canal donde publicar el embed:", view=select, ephemeral=True)
 
-
-class EmbedTextModal(discord.ui.Modal):
-    def __init__(self, builder: EmbedBuilder, field: str, title: str):
+class EmbedFieldModal(Modal):
+    def __init__(self, view: EmbedCreator, field: str, title: str, label: str):
         super().__init__(title=title)
-        self.builder = builder
+        self.view = view
         self.field = field
-        self.input = discord.ui.TextInput(label="Texto:", style=discord.TextStyle.paragraph)
+        self.input = TextInput(label=label, style=discord.TextStyle.paragraph, required=True)
         self.add_item(self.input)
 
     async def on_submit(self, interaction: discord.Interaction):
         value = self.input.value
         if self.field == "title":
-            self.builder.embed.title = value
+            self.view.embed.title = value
         elif self.field == "description":
-            self.builder.embed.description = value
+            self.view.embed.description = value
         elif self.field == "footer":
-            self.builder.embed.set_footer(text=value)
+            self.view.embed.set_footer(text=value)
 
-        await self.builder.message.edit(embed=self.builder.embed)
-        await interaction.response.send_message("✅ Campo actualizado.", ephemeral=True)
+        await self.view.message.edit(embed=self.view.embed)
+        await interaction.response.send_message("✅ Actualizado correctamente.", ephemeral=True)
 
 
-class EmbedImageModal(discord.ui.Modal, title="Agregar imágenes"):
-    def __init__(self, builder: EmbedBuilder):
+class EmbedImagesModal(Modal, title="🖼️ Imágenes del embed"):
+    def __init__(self, view: EmbedCreator):
         super().__init__()
-        self.builder = builder
-        self.image = discord.ui.TextInput(label="URL de imagen principal (opcional):", required=False)
-        self.thumbnail = discord.ui.TextInput(label="URL de miniatura (opcional):", required=False)
+        self.view = view
+        self.image = TextInput(label="URL de imagen grande (opcional)", required=False)
+        self.thumb = TextInput(label="URL de miniatura (opcional)", required=False)
         self.add_item(self.image)
-        self.add_item(self.thumbnail)
+        self.add_item(self.thumb)
 
     async def on_submit(self, interaction: discord.Interaction):
         if self.image.value:
-            self.builder.embed.set_image(url=self.image.value)
-        if self.thumbnail.value:
-            self.builder.embed.set_thumbnail(url=self.thumbnail.value)
-
-        await self.builder.message.edit(embed=self.builder.embed)
+            self.view.embed.set_image(url=self.image.value)
+        if self.thumb.value:
+            self.view.embed.set_thumbnail(url=self.thumb.value)
+        await self.view.message.edit(embed=self.view.embed)
         await interaction.response.send_message("✅ Imágenes actualizadas.", ephemeral=True)
 
 
-class ChannelSelect(discord.ui.View):
-    def __init__(self, builder: EmbedBuilder, options):
+class EmbedColorModal(Modal, title="🎨 Cambiar color del borde"):
+    def __init__(self, view: EmbedCreator):
+        super().__init__()
+        self.view = view
+        self.color = TextInput(label="Color HEX (ej: #1c72ff)", required=True)
+        self.add_item(self.color)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            color = int(self.color.value.replace("#", ""), 16)
+            self.view.embed.color = discord.Color(color)
+            await self.view.message.edit(embed=self.view.embed)
+            await interaction.response.send_message("✅ Color actualizado.", ephemeral=True)
+        except ValueError:
+            await interaction.response.send_message("❌ Color no válido. Usa formato HEX (ej: #ff0000).", ephemeral=True)
+
+
+class PublishSelect(View):
+    def __init__(self, creator_view, channels):
         super().__init__(timeout=60)
-        self.builder = builder
-        self.add_item(ChannelDropdown(self, options))
+        self.creator_view = creator_view
+        self.add_item(ChannelSelectDropdown(self, channels))
 
 
-class ChannelDropdown(discord.ui.Select):
-    def __init__(self, view, options):
-        super().__init__(placeholder="Selecciona un canal...", options=options)
-        self.parent_view = view
+class ChannelSelectDropdown(Select):
+    def __init__(self, parent_view, channels):
+        super().__init__(placeholder="Selecciona un canal...", options=channels)
+        self.parent_view = parent_view
 
     async def callback(self, interaction: discord.Interaction):
         channel_id = int(self.values[0])
         channel = interaction.guild.get_channel(channel_id)
+        if channel:
+            await channel.send(embed=self.parent_view.creator_view.embed)
+            await interaction.response.send_message(f"✅ Embed publicado en {channel.mention}", ephemeral=True)
 
-        # Enviar embed al canal seleccionado
-        await channel.send(embed=self.parent_view.builder.embed)
-        await interaction.response.send_message(f"✅ Embed publicado en {channel.mention}", ephemeral=True)
+            # 🔹 Limpieza solo de mensajes del creador y del bot
+            async for msg in interaction.channel.history(limit=100):
+                if msg.author == interaction.user or msg.author == interaction.client.user:
+                    try:
+                        await msg.delete()
+                    except:
+                        pass
+            print(f"🧹 Canal {interaction.channel.name}: limpiados mensajes del menú y del creador.")
 
-        # Borrar los mensajes del canal donde se creó el embed
-        await interaction.channel.purge()
-        print(f"🧹 Canal {interaction.channel.name} limpiado después de publicar embed.")
 
-
-# ---- COMANDO PRINCIPAL ----
+# ---- COMANDO ----
 @commands.has_permissions(administrator=True)
 @commands.command(name="embed")
 async def embed_command(ctx):
-    view = EmbedBuilder(ctx.author)
+    view = EmbedCreator(ctx.author)
     msg = await ctx.send(embed=view.embed, view=view)
     view.message = msg
-    await ctx.message.delete()  # Borra el mensaje del comando original
-
-# Registrar comando en tu bot
-bot.add_command(embed_command)
+    view.messages_to_clean.append(msg)
+    await ctx.message.delete()
 
 # ----------------------------
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
