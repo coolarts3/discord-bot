@@ -2,6 +2,7 @@ import discord
 from discord.ext import tasks
 from discord.ext import commands
 from discord import FFmpegPCMAudio
+from discord.utils import get
 import yt_dlp
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -86,6 +87,85 @@ async def aviso_automatico():
 async def before_aviso():
     await bot.wait_until_ready()
     print("⏳ Esperando para iniciar avisos automáticos...")
+
+#CREACION DE PARTIDAS POR ROL
+
+@bot.command()
+async def lfg(ctx, juego: str, jugadores: int):
+    """Crea una búsqueda de grupo para un juego."""
+    await ctx.message.delete()  # Borra el comando original
+
+    anuncio = await ctx.send(
+        f"🎮 **{ctx.author.display_name}** busca grupo de **{jugadores}** personas para **{juego}**.\n"
+        f"Reacciona con 🎮 para unirte a la espera."
+    )
+    await anuncio.add_reaction("🎮")
+
+    jugadores_actuales = [ctx.author]
+
+    def check_reaction(reaction, user):
+        return (
+            reaction.message.id == anuncio.id
+            and str(reaction.emoji) == "🎮"
+            and user not in jugadores_actuales
+            and not user.bot
+        )
+
+    while len(jugadores_actuales) < jugadores:
+        try:
+            reaction, user = await bot.wait_for("reaction_add", timeout=300.0, check=check_reaction)
+        except asyncio.TimeoutError:
+            await ctx.send("⌛ La búsqueda de grupo ha expirado por inactividad.")
+            await anuncio.delete()
+            return
+        else:
+            jugadores_actuales.append(user)
+            await ctx.send(f"✅ {user.display_name} se ha unido a la búsqueda ({len(jugadores_actuales)}/{jugadores})")
+
+    # Crear canales privados
+    guild = ctx.guild
+    category = get(guild.categories, name="𝓟𝓐𝓡𝓣𝓘𝓓𝓐𝓢 🖱️")  # Cambia este nombre si quieres otra categoría
+    if not category:
+        category = await guild.create_category("𝓟𝓐𝓡𝓣𝓘𝓓𝓐𝓢 🖱️")
+
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+    }
+    for player in jugadores_actuales:
+        overwrites[player] = discord.PermissionOverwrite(view_channel=True, connect=True, send_messages=True)
+
+    text_channel = await guild.create_text_channel(f"partida-{juego.lower()}", overwrites=overwrites, category=category)
+    voice_channel = await guild.create_voice_channel(f"🎮 {juego}", overwrites=overwrites, category=category)
+
+    await text_channel.send(
+        f"✅ **Partida lista:** {', '.join([p.mention for p in jugadores_actuales])}\n"
+        f"Canal de voz: {voice_channel.mention}\n"
+        f"⏱️ Estos canales se eliminarán tras 5 minutos de inactividad."
+    )
+
+    # Monitorear actividad
+    await monitor_inactividad(text_channel, voice_channel, timeout=300)
+
+
+async def monitor_inactividad(text_channel, voice_channel, timeout=300):
+    """Elimina canales tras un periodo sin actividad."""
+    while True:
+        await asyncio.sleep(timeout)
+
+        # Revisar actividad: sin mensajes recientes y sin usuarios en voz
+        last_message_time = None
+        async for message in text_channel.history(limit=1):
+            last_message_time = message.created_at
+
+        now = discord.utils.utcnow()
+        voice_active = len(voice_channel.members) > 0
+
+        if (not voice_active) and (not last_message_time or (now - last_message_time).total_seconds() > timeout):
+            await text_channel.send("💤 Eliminando canales por inactividad...")
+            await asyncio.sleep(3)
+            await text_channel.delete()
+            await voice_channel.delete()
+            break
 
 # ----------------------------
 # MENÚ DE SELECCIÓN DE ROLES
@@ -415,6 +495,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
