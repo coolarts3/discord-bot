@@ -274,25 +274,19 @@ class RoleSelectView(discord.ui.View):
             return False
         return True
 
-    # Botón Plataforma
     @discord.ui.button(label="💻 Plataforma", style=discord.ButtonStyle.primary)
     async def select_platform(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Abrimos una vista con botones de plataforma
         await interaction.response.send_message("Selecciona tu plataforma:", view=PlatformButtons(self), ephemeral=True)
 
-    # Botón Juegos
     @discord.ui.button(label="🎮 Juegos", style=discord.ButtonStyle.success)
     async def select_games(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Abrimos una vista con botones de juegos
         await interaction.response.send_message("Selecciona tus juegos:", view=GamesButtons(self), ephemeral=True)
 
-    # Botón Finalizar
     @discord.ui.button(label="✅ Finalizar", style=discord.ButtonStyle.green)
     async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message("✅ Roles asignados. Canal temporal eliminado.", ephemeral=True)
         if self.temp_channel:
             await self.temp_channel.delete(reason="Usuario terminó selección de roles")
-
 
 # -------------------------------
 # BOTONES DE PLATAFORMA
@@ -333,8 +327,7 @@ class PlatformButtons(discord.ui.View):
                     name=f"{interaction.user.name}-roles", overwrites=overwrites, category=category
                 )
                 self.parent_view.temp_channel = temp_channel
-                await temp_channel.send("Canal temporal creado para tu selección de roles.")
-
+                await temp_channel.send("🎮 Canal privado creado para tu selección de roles y juegos.", view=self.parent_view)
 
 # -------------------------------
 # BOTONES DE JUEGOS
@@ -366,20 +359,32 @@ class GamesButtons(discord.ui.View):
             await interaction.user.add_roles(role)
             await interaction.response.send_message(f"✅ Rol {role_name} asignado.", ephemeral=True)
 
-
 # -------------------------------
-# COMANDO PARA INICIAR
+# COMANDO PRINCIPAL
 # -------------------------------
 @bot.command()
 async def roles(ctx):
-    # Borrar comando en canal público
+    # Borrar el comando del canal público
     await ctx.message.delete()
 
     # Crear la vista principal
     view = RoleSelectView(ctx.author)
 
-    # Enviar mensaje en canal público / temporal para iniciar la selección
-    await ctx.send("🎮 Pulsa los botones para seleccionar tus roles y juegos:", view=view)
+    # Crear canal temporal privado directamente al iniciar
+    overwrites = {
+        ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False),
+        ctx.author: discord.PermissionOverwrite(view_channel=True)
+    }
+    category = discord.utils.get(ctx.guild.categories, name="🎮 Roles")
+    if not category:
+        category = await ctx.guild.create_category("🎮 Roles")
+    temp_channel = await ctx.guild.create_text_channel(
+        name=f"{ctx.author.name}-roles", overwrites=overwrites, category=category
+    )
+    view.temp_channel = temp_channel
+
+    # Enviar menú de botones en el canal privado
+    await temp_channel.send(f"🎮 Hola {ctx.author.mention}, pulsa los botones para seleccionar tus roles y juegos:", view=view)
 
 
 # ----------------------------
@@ -720,6 +725,7 @@ bot.add_command(embed_command)
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
