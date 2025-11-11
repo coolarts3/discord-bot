@@ -115,30 +115,35 @@ async def on_message(message):
 LFG_CHANNEL_ID = 1437833190076317806  # 🔁 cámbialo por el ID de tu canal permitido
 
 @bot.command()
-async def lfg(ctx, juego: str = None, jugadores: int = None):
+async def lfg(ctx, juego: str = None, jugadores: str = None):
     """Busca grupo para un juego."""
-    # Verificar canal permitido
     if ctx.channel.id != LFG_CHANNEL_ID:
-        await ctx.send("❌ Este comando solo puede usarse en el canal designado para buscar partidas.")
+        msg = await ctx.send("❌ Este comando solo puede usarse en el canal designado.")
         await asyncio.sleep(5)
+        await msg.delete()
         await ctx.message.delete()
         return
 
-    # Borrar el comando original
     await ctx.message.delete()
 
-    # Validar argumentos
-    if juego is None or jugadores is None:
+    if not juego or not jugadores:
         msg = await ctx.send("⚠️ Uso correcto: `!lfg <nombre_del_juego> <número_de_jugadores>`")
         await asyncio.sleep(5)
         await msg.delete()
         return
 
-    if not isinstance(jugadores, int) or jugadores < 2:
-        msg = await ctx.send("⚠️ El número de jugadores debe ser un número entero mayor o igual a 2.")
+    try:
+        jugadores = int(jugadores)
+        if jugadores < 2:
+            raise ValueError
+    except ValueError:
+        msg = await ctx.send("⚠️ El número de jugadores debe ser un entero >= 2.")
         await asyncio.sleep(5)
         await msg.delete()
         return
+
+    # Llamar a la función que maneja la búsqueda de grupo
+    await buscar_grupo(ctx, juego, jugadores)
 
     # Crear anuncio
 async def buscar_grupo(ctx, juego: str, jugadores: int):
@@ -574,6 +579,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
