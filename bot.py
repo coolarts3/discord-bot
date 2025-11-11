@@ -142,10 +142,11 @@ async def lfg(ctx, juego: str = None, jugadores: int = None):
 
     # Crear anuncio
     anuncio = await ctx.send(
-        f"🎮 **{ctx.author.display_name}** busca grupo de **{jugadores}** personas para **{juego}**.\n"
-        f"Reacciona con 🎮 para unirte a la espera."
-    )
-    await anuncio.add_reaction("🎮")
+    f"🎮 **{ctx.author.display_name}** busca grupo de **{jugadores}** personas para **{juego}**.\n"
+    f"Reacciona con 🎮 para unirte a la espera.",
+    delete_after=300  # 300 segundos = 5 minutos
+)
+await anuncio.add_reaction("🎮")
 
     jugadores_actuales = [ctx.author]
 
@@ -191,9 +192,6 @@ async def lfg(ctx, juego: str = None, jugadores: int = None):
         f"Canal de voz: {voice_channel.mention}\n"
         f"⏱️ Estos canales se eliminarán tras 5 minutos de inactividad."
     )
-
-    # Borrar automáticamente después de 5 segundos
-    await starter_message.delete(delay=5)
 
     # Monitorear inactividad
     await monitor_inactividad(ctx.bot, text_channel, voice_channel, timeout=300)
@@ -572,6 +570,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
