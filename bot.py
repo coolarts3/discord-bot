@@ -723,10 +723,13 @@ async def embed_command(ctx):
     view.messages_to_clean.append(msg)
     await ctx.message.delete()
 
+bot.add_command(embed_command)
+
 # ----------------------------
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
