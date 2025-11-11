@@ -724,12 +724,23 @@ bot.add_command(embed_command)
 class PersonaModal(discord.ui.Modal):
     def __init__(self):
         super().__init__(title="Reporte de Persona")
-        self.add_item(discord.ui.InputText(label="Nombre de la persona reportada", placeholder="Usuario#1234"))
-        self.add_item(discord.ui.InputText(label="Descripción del reporte", style=discord.InputTextStyle.paragraph))
+
+        # Texto para nombre de la persona
+        self.add_item(discord.ui.TextInput(
+            label="Nombre de la persona reportada",
+            placeholder="Usuario#1234"
+        ))
+
+        # Texto para descripción
+        self.add_item(discord.ui.TextInput(
+            label="Descripción del reporte",
+            style=discord.TextStyle.paragraph
+        ))
 
     async def on_submit(self, interaction: discord.Interaction):
         nombre = self.children[0].value
         descripcion = self.children[1].value
+        await interaction.response.send_message(f"✅ Tu reporte de {nombre} ha sido enviado.", ephemeral=True)
 
         # Crear canal temporal para el reporte
         guild = interaction.guild
@@ -754,12 +765,21 @@ class PersonaModal(discord.ui.Modal):
 class BugModal(discord.ui.Modal):
     def __init__(self):
         super().__init__(title="Reporte de Bug")
-        self.add_item(discord.ui.InputText(label="Descripción del bug", style=discord.InputTextStyle.paragraph))
-        self.add_item(discord.ui.InputText(label="Pasos para reproducir", style=discord.InputTextStyle.paragraph))
+
+        self.add_item(discord.ui.TextInput(
+            label="Descripción del bug",
+            style=discord.TextStyle.paragraph
+        ))
+
+        self.add_item(discord.ui.TextInput(
+            label="Pasos para reproducir",
+            style=discord.TextStyle.paragraph
+        ))
 
     async def on_submit(self, interaction: discord.Interaction):
         descripcion = self.children[0].value
         pasos = self.children[1].value
+        await interaction.response.send_message("✅ Tu reporte de bug ha sido enviado.", ephemeral=True)
 
         guild = interaction.guild
         category = discord.utils.get(guild.categories, name="📄 Reportes")
@@ -817,6 +837,7 @@ async def crear_reporte(ctx, canal: discord.TextChannel):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
