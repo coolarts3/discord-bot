@@ -744,9 +744,9 @@ class PersonaModal(discord.ui.Modal):
 
         # Crear canal temporal para el reporte
         guild = interaction.guild
-        category = discord.utils.get(guild.categories, name="📄 Reportes")
+        category = discord.utils.get(guild.categories, name="𝕊𝕆ℙ𝕆ℝ𝕋𝔼")
         if not category:
-            category = await guild.create_category("📄 Reportes")
+            category = await guild.create_category("𝕊𝕆ℙ𝕆ℝ𝕋𝔼")
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
@@ -782,9 +782,9 @@ class BugModal(discord.ui.Modal):
         await interaction.response.send_message("✅ Tu reporte de bug ha sido enviado.", ephemeral=True)
 
         guild = interaction.guild
-        category = discord.utils.get(guild.categories, name="📄 Reportes")
+        category = discord.utils.get(guild.categories, name="𝕊𝕆ℙ𝕆ℝ𝕋𝔼")
         if not category:
-            category = await guild.create_category("📄 Reportes")
+            category = await guild.create_category("𝕊𝕆ℙ𝕆ℝ𝕋𝔼")
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
@@ -837,6 +837,7 @@ async def crear_reporte(ctx, canal: discord.TextChannel):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
