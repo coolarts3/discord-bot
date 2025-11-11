@@ -190,6 +190,14 @@ async def monitor_inactividad(text_channel, voice_channel, timeout=300):
         if (not voice_active) and (not last_message_time or (now - last_message_time).total_seconds() > timeout):
             await text_channel.send("💤 Eliminando canales por inactividad...")
             await asyncio.sleep(3)
+
+            # 🆕 Eliminar también el mensaje de anuncio si aún existe
+if hasattr(text_channel, "starter_message"):
+    try:
+        await text_channel.starter_message.delete()
+    except:
+        pass
+        
             await text_channel.delete()
             await voice_channel.delete()
             break
@@ -522,6 +530,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
