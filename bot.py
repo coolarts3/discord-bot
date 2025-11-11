@@ -32,26 +32,59 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ID del canal donde se enviarán los recordatorios
-RECORDATORIO_CANAL_ID = 1437188675225124874  # Cambia por tu canal
 
-# Intervalo de tiempo en segundos (ej: 3600 = 1 hora)
-INTERVALO_RECORDATORIO = 3600  # 1 hora
+# 🕒 Guarda la última vez que alguien habló
+last_activity = None
 
-@tasks.loop(seconds=INTERVALO_RECORDATORIO)
-async def enviar_recordatorio():
-    canal = bot.get_channel(RECORDATORIO_CANAL_ID)
-    if canal:
-        await canal.send(
-            "📢 @everyone  ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil de juegos y plataforma!"
-        )
+# ⏱️ Cada cuántos minutos se enviará el aviso
+INTERVALO_AVISO = 60
+
+# 📢 Canal donde se envían los avisos (pon tu ID real)
+CANAL_AVISO_ID = 1437188675225124874
+
 
 @bot.event
 async def on_ready():
     print(f"✅ Bot conectado como {bot.user}")
-    # Inicia la tarea de recordatorio si no está ya corriendo
-    if not enviar_recordatorio.is_running():
-        enviar_recordatorio.start()
+    aviso_automatico.start()  # Inicia la tarea de avisos
+
+
+@bot.event
+async def on_message(message):
+    global last_activity
+
+    # Ignorar mensajes del bot
+    if message.author.bot:
+        return
+
+    # Actualiza el registro de actividad
+    last_activity = datetime.utcnow()
+
+    # Permite que funcionen los comandos
+    await bot.process_commands(message)
+
+
+@tasks.loop(minutes=INTERVALO_AVISO)
+async def aviso_automatico():
+    """Envía un aviso cada cierto tiempo solo si hubo actividad reciente"""
+    global last_activity
+
+    if last_activity is None:
+        return  # Nadie ha hablado aún
+
+    # Comprobar si hubo actividad en el intervalo
+    if datetime.utcnow() - last_activity < timedelta(minutes=INTERVALO_AVISO):
+        canal = bot.get_channel(CANAL_AVISO_ID)
+        if canal:
+            await canal.send("📢 @everyone  ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil de juegos y plataforma!")
+    else:
+        print("💤 Sin actividad reciente, no se envía aviso.")
+
+
+@aviso_automatico.before_loop
+async def before_aviso():
+    await bot.wait_until_ready()
+    print("⏳ Esperando para iniciar avisos automáticos...")
 
 # ----------------------------
 # MENÚ DE SELECCIÓN DE ROLES
@@ -381,6 +414,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
