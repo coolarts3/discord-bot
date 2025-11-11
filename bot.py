@@ -141,6 +141,7 @@ async def lfg(ctx, juego: str = None, jugadores: int = None):
         return
 
     # Crear anuncio
+async def buscar_grupo(ctx, juego: str, jugadores: int):
     anuncio = await ctx.send(
     f"🎮 **{ctx.author.display_name}** busca grupo de **{jugadores}** personas para **{juego}**.\n"
     f"Reacciona con 🎮 para unirte a la espera.",
@@ -570,6 +571,7 @@ async def say(ctx, *, mensaje):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
