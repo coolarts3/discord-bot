@@ -37,8 +37,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 
 # Configuración
-CANAL_AVISO_ID = 123456789012345678  # reemplaza con tu canal
-TIEMPO_ESPERA = 5  # minutos después de la última actividad para enviar aviso
+CANAL_AVISO_ID = 1437188675225124874  # reemplaza con tu canal
+TIEMPO_ESPERA = 1  # minutos después de la última actividad para enviar aviso
 
 # Variable global para registrar última actividad
 last_activity = None
@@ -856,6 +856,7 @@ async def crear_reporte(ctx, canal: discord.TextChannel = None):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
