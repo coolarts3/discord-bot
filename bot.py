@@ -10,7 +10,8 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import os
 import asyncio
 import imageio_ffmpeg as ffmpeg
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from datetime import timezone
 
 SPOTIFY_CLIENT_ID = "1e5de19a89e2457aa31ddf0f2cad11b6"
 SPOTIFY_CLIENT_SECRET = "d5c34f121bf4417a8071516e5447cdbf"
@@ -36,16 +37,12 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
-# -----------------------------
-# Configuración de aviso
-# -----------------------------
-CANAL_AVISO_ID = 1437188675225124874  # reemplaza con tu canal
-TIEMPO_ESPERA = 1  # minutos después de la última actividad para enviar aviso
-
-last_activity = None  # Variable global para registrar última actividad
+CANAL_AVISO_ID = 1437188675225124874  # tu canal
+TIEMPO_ESPERA = 1  # minutos
+last_activity = None
 
 # -----------------------------
-# Evento que detecta mensajes
+# Detecta mensajes
 # -----------------------------
 @bot.event
 async def on_message(message):
@@ -53,11 +50,11 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    last_activity = datetime.utcnow()  # Actualiza última actividad
-    await bot.process_commands(message)  # Muy importante para que los comandos sigan funcionando
+    last_activity = datetime.utcnow()  # actualiza la última actividad
+    await bot.process_commands(message)  # necesario para que los comandos funcionen
 
 # -----------------------------
-# Función que envía el aviso
+# Función que envía aviso
 # -----------------------------
 async def enviar_aviso():
     canal = bot.get_channel(CANAL_AVISO_ID)
@@ -71,13 +68,13 @@ async def enviar_aviso():
 async def monitor_actividad():
     global last_activity
     await bot.wait_until_ready()
-    while not bot.is_closed():
+    while True:
         if last_activity:
-            tiempo_transcurrido = (datetime.utcnow() - last_activity).total_seconds()
-            if tiempo_transcurrido >= TIEMPO_ESPERA * 60:
+            tiempo_transcurrido = (datetime.utcnow() - last_activity).total_seconds() / 60
+            if tiempo_transcurrido >= TIEMPO_ESPERA:
                 await enviar_aviso()
-                last_activity = None  # Reinicia temporizador hasta la próxima actividad
-        await asyncio.sleep(10)  # Revisa cada 10 segundos
+                last_activity = None  # espera nueva actividad
+        await asyncio.sleep(5)  # revisa cada 5 segundos
 
 # -----------------------------
 # Evento on_ready
@@ -85,7 +82,7 @@ async def monitor_actividad():
 @bot.event
 async def on_ready():
     print(f"✅ Bot conectado como {bot.user}")
-    bot.loop.create_task(monitor_actividad())  # Inicia la tarea de monitorización
+    bot.loop.create_task(monitor_actividad())  # inicia la tarea
 
 
 @bot.event
@@ -865,6 +862,7 @@ async def crear_reporte(ctx, canal: discord.TextChannel = None):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
