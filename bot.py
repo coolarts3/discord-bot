@@ -37,52 +37,47 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
-CANAL_AVISO_ID = 1437188675225124874  # tu canal
-TIEMPO_ESPERA = 1  # minutos
+CANAL_AVISO_ID = 1437188675225124874  # reemplaza con tu canal
+TIEMPO_ESPERA = 5  # minutos
 last_activity = None
 
 # -----------------------------
-# Detecta mensajes
+# Detectar actividad
 # -----------------------------
 @bot.event
 async def on_message(message):
     global last_activity
     if message.author.bot:
         return
-
-    last_activity = datetime.utcnow()  # actualiza la última actividad
-    await bot.process_commands(message)  # necesario para que los comandos funcionen
-
-# -----------------------------
-# Función que envía aviso
-# -----------------------------
-async def enviar_aviso():
-    canal = bot.get_channel(CANAL_AVISO_ID)
-    if canal:
-        await canal.send("📢 ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil!")
-        print(f"[{datetime.utcnow()}] Aviso enviado en {canal.name}")
+    last_activity = datetime.utcnow()
+    await bot.process_commands(message)
 
 # -----------------------------
-# Tarea que revisa actividad
+# Tarea que envía avisos solo si hubo actividad
 # -----------------------------
-async def monitor_actividad():
+@tasks.loop(seconds=30)
+async def aviso_automatico():
     global last_activity
-    await bot.wait_until_ready()
-    while True:
-        if last_activity:
-            tiempo_transcurrido = (datetime.utcnow() - last_activity).total_seconds() / 60
-            if tiempo_transcurrido >= TIEMPO_ESPERA:
-                await enviar_aviso()
-                last_activity = None  # espera nueva actividad
-        await asyncio.sleep(5)  # revisa cada 5 segundos
+    if last_activity is None:
+        return  # nada de actividad aún
+    tiempo_transcurrido = (datetime.utcnow() - last_activity).total_seconds() / 60
+    if tiempo_transcurrido <= TIEMPO_ESPERA:  # solo si hubo actividad reciente
+        canal = bot.get_channel(CANAL_AVISO_ID)
+        if canal:
+            try:
+                await canal.send("📢 ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil!")
+                print(f"[{datetime.utcnow()}] Aviso enviado en {canal.name}")
+            except Exception as e:
+                print(f"⚠️ Error al enviar aviso: {e}")
 
 # -----------------------------
-# Evento on_ready
+# Iniciar la tarea al arrancar
 # -----------------------------
 @bot.event
 async def on_ready():
     print(f"✅ Bot conectado como {bot.user}")
-    bot.loop.create_task(monitor_actividad())  # inicia la tarea
+    if not aviso_automatico.is_running():
+        aviso_automatico.start()
 
 
 @bot.event
@@ -862,6 +857,7 @@ async def crear_reporte(ctx, canal: discord.TextChannel = None):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
