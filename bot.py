@@ -75,7 +75,6 @@ async def monitor_actividad():
 @bot.event
 async def on_ready():
     print(f"✅ Bot conectado como {bot.user}")
-    aviso_automatico.start()
     bot.loop.create_task(monitor_actividad())
 
 
@@ -856,6 +855,7 @@ async def crear_reporte(ctx, canal: discord.TextChannel = None):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
