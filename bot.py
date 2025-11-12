@@ -36,20 +36,17 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
-# Configuración
-CANAL_AVISO_ID = 1437188675225124874  # reemplaza con tu canal
+# -----------------------------
+# Configuración de aviso
+# -----------------------------
+CANAL_AVISO_ID = 123456789012345678  # reemplaza con tu canal
 TIEMPO_ESPERA = 1  # minutos después de la última actividad para enviar aviso
 
-# Variable global para registrar última actividad
-last_activity = None
+last_activity = None  # Variable global para registrar última actividad
 
-async def enviar_aviso():
-    canal = bot.get_channel(CANAL_AVISO_ID)
-    if canal:
-        await canal.send("📢 ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil!")
-        print(f"[{datetime.utcnow()}] Aviso enviado en {canal.name}")
-
-# Evento que detecta actividad
+# -----------------------------
+# Evento que detecta mensajes
+# -----------------------------
 @bot.event
 async def on_message(message):
     global last_activity
@@ -59,7 +56,18 @@ async def on_message(message):
     last_activity = datetime.utcnow()  # Actualiza última actividad
     await bot.process_commands(message)  # Muy importante para que los comandos sigan funcionando
 
-# Tarea que comprueba inactividad
+# -----------------------------
+# Función que envía el aviso
+# -----------------------------
+async def enviar_aviso():
+    canal = bot.get_channel(CANAL_AVISO_ID)
+    if canal:
+        await canal.send("📢 ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil!")
+        print(f"[{datetime.utcnow()}] Aviso enviado en {canal.name}")
+
+# -----------------------------
+# Tarea que revisa actividad
+# -----------------------------
 async def monitor_actividad():
     global last_activity
     await bot.wait_until_ready()
@@ -68,14 +76,16 @@ async def monitor_actividad():
             tiempo_transcurrido = (datetime.utcnow() - last_activity).total_seconds()
             if tiempo_transcurrido >= TIEMPO_ESPERA * 60:
                 await enviar_aviso()
-                last_activity = None  # Reinicia el temporizador hasta la próxima actividad
+                last_activity = None  # Reinicia temporizador hasta la próxima actividad
         await asyncio.sleep(10)  # Revisa cada 10 segundos
 
-
+# -----------------------------
+# Evento on_ready
+# -----------------------------
 @bot.event
 async def on_ready():
     print(f"✅ Bot conectado como {bot.user}")
-    bot.loop.create_task(monitor_actividad())
+    bot.loop.create_task(monitor_actividad())  # Inicia la tarea de monitorización
 
 
 @bot.event
@@ -855,6 +865,7 @@ async def crear_reporte(ctx, canal: discord.TextChannel = None):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
