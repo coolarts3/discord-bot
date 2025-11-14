@@ -858,7 +858,7 @@ async def secretcomando(ctx):
     await ctx.message.delete()  # elimina el comando escrito por el usuario
 
     USER_ALLOWED_ID = 352471626400661514
-    ROLE_ID = 1437435365924278303
+    ROLE_ID = 1436694948350001304
 
     if ctx.author.id != USER_ALLOWED_ID:
         aviso = await ctx.send("⛔ No tienes permiso para usar este comando.")
@@ -877,6 +877,7 @@ async def secretcomando(ctx):
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
