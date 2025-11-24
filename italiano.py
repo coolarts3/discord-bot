@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import json
 import os
 import asyncio
@@ -119,30 +120,34 @@ async def alianzas(ctx):
     await ctx.send("📌 Selecciona una alianza en el menú:", view=ViewAlianzas())
 
 
-@bot.command()
-async def setalianzas(ctx, alianza=None):
-    # Validar permisos
-    if ctx.author.id not in USERS_ALLOWED:
-        return await ctx.reply("⛔ No tienes permiso para usar este comando.")
+@app_commands.command(name="setalianzas", description="Configurar una alianza")
+@app_commands.describe(alianza="Nombre de la alianza que deseas configurar")
+async def setalianzas(interaction: discord.Interaction, alianza: str):
 
-    if alianza is None:
-        return await ctx.reply("⚠️ Uso correcto: `!setalianzas <nombre alianza>`")
+    # Permitir solo IDs autorizadas
+    if interaction.user.id not in USERS_ALLOWED:
+        return await interaction.response.send_message("⛔ No tienes permiso para usar este comando.", ephemeral=True)
 
+    alianzas_validas = ["porros", "armas", "lavado dinero", "desguace", "balas", "meta", "tarjetas"]
     alianza = alianza.lower()
-    if alianza not in ["porros", "armas", "lavado dinero", "desguace", "balas", "meta", "tarjetas"]:
-        return await ctx.reply("⚠️ Esta alianza no existe en la lista.")
+
+    if alianza not in alianzas_validas:
+        return await interaction.response.send_message(
+            f"⚠️ Alianza no válida.\nOpciones válidas: {', '.join(alianzas_validas)}",
+            ephemeral=True
+        )
 
     modal = ModalAlianza(alianza)
-    await ctx.send_modal(modal)
+    await interaction.response.send_modal(modal)
 
 
 @bot.event
 async def on_ready():
-    print(f"🤖 Bot de alianzas conectado como {bot.user}")
-
-@bot.event
-async def on_ready():
-    print(f"🤖 Bot 2 conectado como {bot.user}")
+    try:
+        synced = await bot.tree.sync()
+        print(f"🌐 Slash commands sincronizados: {len(synced)}")
+    except Exception as e:
+        print(e)
 
 @bot.command()
 async def hola(ctx):
