@@ -109,7 +109,7 @@ class ViewAlianzas(discord.ui.View):
 # ---------- COMANDOS ----------
 
 # ID del canal donde se permite usar !alianzas
-CANAL_ALIANZAS = 1442610362271797309  # 👈 CAMBIA por la ID del canal permitido
+CANAL_ALIANZAS = 1442618930291281960  # 👈 CAMBIA por la ID del canal permitido
 
 
 @bot.command()
