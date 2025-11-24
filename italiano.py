@@ -182,7 +182,7 @@ async def editalianzas(ctx, alianza=None):
     if not data:
         return await ctx.send(f"❌ La alianza **{alianza}** no existe.", delete_after=10)
 
-  class EditModal(Modal, title="Editar alianza"):
+    class EditModal(Modal, title="Editar alianza"):
     def __init__(self, alianza, data):
         super().__init__()
         self.alianza = alianza
@@ -210,9 +210,8 @@ async def editalianzas(ctx, alianza=None):
         )
         await interaction.response.send_message(
             f"✏️ Alianza **{self.alianza}** actualizada correctamente.",
-            delete_after=10
+            delete_after=600
         )
-        
     class ButtonEdit(discord.ui.View):
         @discord.ui.button(label="✏️ Editar", style=discord.ButtonStyle.primary)
         async def btn(self, interaction, button):
