@@ -116,29 +116,29 @@ CANAL_ALIANZAS = 1442618930291281960  # 👈 CAMBIA por la ID del canal permitid
 async def alianzas(ctx):
     # ❌ Si el comando no se usa en el canal correcto
     if ctx.channel.id != CANAL_ALIANZAS:
-        aviso = await ctx.reply(f"⛔ Este comando solo puede usarse en <#{CANAL_ALIANZAS}>.")
+        aviso = await ctx.reply(f"⛔ Este comando solo puede usarse en <#{CANAL_ALIANZAS}>.", delete_after=600)
         await asyncio.sleep(5)
         await aviso.delete()
         await ctx.message.delete()
         return
 
     # ✔ Si está en el canal correcto
-    await ctx.send("📌 Selecciona una alianza en el menú:", view=ViewAlianzas())
+    await ctx.send("📌 Selecciona una alianza en el menú:", view=ViewAlianzas(), delete_after=20)
 
 
 @bot.command()
 async def setalianzas(ctx, alianza=None):
     if ctx.author.id not in USERS_ALLOWED:
-        return await ctx.send("⛔ No tienes permiso para usar este comando.")
+        return await ctx.send("⛔ No tienes permiso para usar este comando.", delete_after=10)
 
     alianzas_validas = ["porros", "armas", "lavado dinero", "desguace", "balas", "meta", "tarjetas"]
 
     if alianza is None:
-        return await ctx.send("⚠️ Uso correcto: `!setalianzas <alianza>`")
+        return await ctx.send("⚠️ Uso correcto: `!setalianzas <alianza>`", delete_after=20)
 
     alianza = alianza.lower()
     if alianza not in alianzas_validas:
-        return await ctx.send(f"❌ La alianza **{alianza}** no existe.")
+        return await ctx.send(f"❌ La alianza **{alianza}** no existe.", delete_after=10)
 
     # Enviar un botón que abre el modal
     class OpenModalButton(discord.ui.View):
@@ -147,21 +147,21 @@ async def setalianzas(ctx, alianza=None):
             modal = ModalAlianza(alianza)
             await interaction.response.send_modal(modal)
 
-    await ctx.send(f"📝 Pulsa el botón para configurar **{alianza}**:", view=OpenModalButton())
+    await ctx.send(f"📝 Pulsa el botón para configurar **{alianza}**:", view=OpenModalButton(), delete_after=30)
 
 @bot.command()
 async def editalianzas(ctx, alianza=None):
     if ctx.author.id not in USERS_ALLOWED:
-        return await ctx.send("⛔ No tienes permiso para usar este comando.")
+        return await ctx.send("⛔ No tienes permiso para usar este comando.", delete_after=10)
 
     if alianza is None:
-        return await ctx.send("⚠️ Uso correcto: `!editalianzas <alianza>`")
+        return await ctx.send("⚠️ Uso correcto: `!editalianzas <alianza>`", delete_after=20)
 
     alianza = alianza.lower()
     datos = cargar_datos()
 
     if alianza not in datos:
-        return await ctx.send(f"❌ La alianza **{alianza}** todavía no está configurada.")
+        return await ctx.send(f"❌ La alianza **{alianza}** todavía no está configurada.", delete_after=20)
 
     info = datos[alianza]
 
@@ -186,26 +186,26 @@ async def editalianzas(ctx, alianza=None):
         async def edit(self, interaction: discord.Interaction, button: discord.ui.Button):
             await interaction.response.send_modal(EditModal())
 
-    await ctx.send(f"🔧 Editar alianza **{alianza}**", view=EditButton())
+    await ctx.send(f"🔧 Editar alianza **{alianza}**", view=EditButton(), delete_after=60)
 
 @bot.command()
 async def deletealianzas(ctx, alianza=None):
     if ctx.author.id not in USERS_ALLOWED:
-        return await ctx.send("⛔ No tienes permiso para usar este comando.")
+        return await ctx.send("⛔ No tienes permiso para usar este comando.", delete_after=10)
 
     if alianza is None:
-        return await ctx.send("⚠️ Uso correcto: `!deletealianzas <alianza>`")
+        return await ctx.send("⚠️ Uso correcto: `!deletealianzas <alianza>`", delete_after=20)
 
     alianza = alianza.lower()
     datos = cargar_datos()
 
     if alianza not in datos:
-        return await ctx.send(f"❌ La alianza **{alianza}** no está registrada.")
+        return await ctx.send(f"❌ La alianza **{alianza}** no está registrada.", delete_after=10)
 
     del datos[alianza]
     guardar_datos(datos)
 
-    await ctx.send(f"🗑️ Alianza **{alianza}** eliminada correctamente.")
+    await ctx.send(f"🗑️ Alianza **{alianza}** eliminada correctamente.", delete_after=10)
 
 @bot.command()
 async def verdb(ctx):
