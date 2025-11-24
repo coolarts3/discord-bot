@@ -4,6 +4,7 @@ from discord import app_commands
 import json
 import os
 import asyncio
+from discord.ui import Modal, TextInput
 
 intents = discord.Intents.default()
 intents.members = True
@@ -36,29 +37,33 @@ def guardar_datos(data):
 
 # ---------- MODAL ----------
 class ModalAlianza(discord.ui.Modal, title="Registrar Alianza"):
-
-    nombre = discord.ui.TextInput(label="Nombre familia", style=discord.TextStyle.short)
-    numero = discord.ui.TextInput(label="Número familia", style=discord.TextStyle.short)
-    compra = discord.ui.TextInput(label="Descuento en compras (%)", style=discord.TextStyle.short)
-    venta = discord.ui.TextInput(label="Descuento en ventas (%)", style=discord.TextStyle.short)
-    foto = discord.ui.TextInput(label="URL de imagen de situación (pegar enlace de imagen)", style=discord.TextStyle.short)
-
     def __init__(self, alianza):
         super().__init__()
         self.alianza = alianza
+
+        self.nombre = TextInput(label="Nombre de la familia")
+        self.numero = TextInput(label="Número de la familia")
+        self.foto = TextInput(label="URL de la imagen")
+        self.compra = TextInput(label="Descuento en compras (%)")
+        self.venta = TextInput(label="Descuento en ventas (%)")
+
+        self.add_item(self.nombre)
+        self.add_item(self.numero)
+        self.add_item(self.foto)
+        self.add_item(self.compra)
+        self.add_item(self.venta)
 
     async def on_submit(self, interaction: discord.Interaction):
         datos = cargar_datos()
         datos[self.alianza] = {
             "nombre": str(self.nombre),
             "numero": str(self.numero),
+            "foto": str(self.foto),
             "compra": str(self.compra),
-            "venta": str(self.venta),
-            "foto": str(self.foto)
+            "venta": str(self.venta)
         }
         guardar_datos(datos)
-
-        await interaction.response.send_message(f"✅ Alianza **{self.alianza}** registrada correctamente.", ephemeral=True)
+        await interaction.response.send_message(f"✅ Alianza **{self.alianza}** configurada correctamente.", ephemeral=True)
 
 
 # ---------- SELECT ----------
@@ -121,26 +126,28 @@ async def alianzas(ctx):
     await ctx.send("📌 Selecciona una alianza en el menú:", view=ViewAlianzas())
 
 
-@app_commands.command(name="setalianzas", description="Configurar una alianza")
-@app_commands.describe(alianza="Nombre de la alianza que deseas configurar")
-async def setalianzas(interaction: discord.Interaction, alianza: str):
-    bot.tree.add_command(setalianzas)
-
-    # Permitir solo IDs autorizadas
-    if interaction.user.id not in USERS_ALLOWED:
-        return await interaction.response.send_message("⛔ No tienes permiso para usar este comando.", ephemeral=True)
+@bot.command()
+async def setalianzas(ctx, alianza=None):
+    if ctx.author.id not in USERS_ALLOWED:
+        return await ctx.send("⛔ No tienes permiso para usar este comando.")
 
     alianzas_validas = ["porros", "armas", "lavado dinero", "desguace", "balas", "meta", "tarjetas"]
+
+    if alianza is None:
+        return await ctx.send("⚠️ Uso correcto: `!setalianzas <alianza>`")
+
     alianza = alianza.lower()
-
     if alianza not in alianzas_validas:
-        return await interaction.response.send_message(
-            f"⚠️ Alianza no válida.\nOpciones válidas: {', '.join(alianzas_validas)}",
-            ephemeral=True
-        )
+        return await ctx.send(f"❌ La alianza **{alianza}** no existe.")
 
-    modal = ModalAlianza(alianza)
-    await interaction.response.send_modal(modal)
+    # Enviar un botón que abre el modal
+    class OpenModalButton(discord.ui.View):
+        @discord.ui.button(label="📋 Abrir formulario", style=discord.ButtonStyle.green)
+        async def open(self, interaction: discord.Interaction, button: discord.ui.Button):
+            modal = ModalAlianza(alianza)
+            await interaction.response.send_modal(modal)
+
+    await ctx.send(f"📝 Pulsa el botón para configurar **{alianza}**:", view=OpenModalButton())
 
 
 @bot.event
