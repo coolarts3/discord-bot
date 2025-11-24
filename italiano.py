@@ -212,7 +212,6 @@ async def editalianzas(ctx, alianza=None):
             f"✏️ Alianza **{self.alianza}** actualizada correctamente.",
             delete_after=10
         )
-
     class ButtonEdit(discord.ui.View):
         @discord.ui.button(label="✏️ Editar", style=discord.ButtonStyle.primary)
         async def btn(self, interaction, button):
