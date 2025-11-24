@@ -17,7 +17,7 @@ tree = bot.tree
 USERS_ALLOWED = [682643114560848012, 352471626400661514]  # 👈 Cambia por tus IDs
 
 # archivo donde se guardan los datos
-FILE = "alianzas.json"
+FILE = os.path.join(os.path.dirname(__file__), "alianzas.json")
 
 # si no existe el archivo, lo crea
 if not os.path.exists(FILE):
@@ -206,6 +206,11 @@ async def deletealianzas(ctx, alianza=None):
     guardar_datos(datos)
 
     await ctx.send(f"🗑️ Alianza **{alianza}** eliminada correctamente.")
+
+@bot.command()
+async def verdb(ctx):
+    datos = cargar_datos()
+    await ctx.send(f"```json\n{json.dumps(datos, indent=4)}\n```")
 
 
 @bot.event
