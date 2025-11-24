@@ -78,8 +78,8 @@ class ModalAlianza(Modal, title="Registrar Alianza"):
         self.nombre = TextInput(label="Nombre de la familia")
         self.numero = TextInput(label="Número de la familia")
         self.foto = TextInput(label="URL de la imagen")
-        self.compra = TextInput(label="Descuento en compras (%)")
-        self.venta = TextInput(label="Descuento en ventas (%)")
+        self.compra = TextInput(label="Desc. compras (%)")
+        self.venta = TextInput(label="Desc. ventas (%)")
 
     async def on_submit(self, interaction: discord.Interaction):
         guardar_alianza(
