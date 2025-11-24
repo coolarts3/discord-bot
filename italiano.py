@@ -149,6 +149,64 @@ async def setalianzas(ctx, alianza=None):
 
     await ctx.send(f"📝 Pulsa el botón para configurar **{alianza}**:", view=OpenModalButton())
 
+@bot.command()
+async def editalianzas(ctx, alianza=None):
+    if ctx.author.id not in USERS_ALLOWED:
+        return await ctx.send("⛔ No tienes permiso para usar este comando.")
+
+    if alianza is None:
+        return await ctx.send("⚠️ Uso correcto: `!editalianzas <alianza>`")
+
+    alianza = alianza.lower()
+    datos = cargar_datos()
+
+    if alianza not in datos:
+        return await ctx.send(f"❌ La alianza **{alianza}** todavía no está configurada.")
+
+    info = datos[alianza]
+
+    class EditModal(discord.ui.Modal, title=f"Editar {alianza}"):
+        nombre = discord.ui.TextInput(label="Nombre familia", default=info["nombre"])
+        numero = discord.ui.TextInput(label="Número de familia", default=info["numero"])
+        foto = discord.ui.TextInput(label="URL foto", default=info["foto"])
+        compra = discord.ui.TextInput(label="Descuento compras", default=info["compra"])
+        venta = discord.ui.TextInput(label="Descuento ventas", default=info["venta"])
+
+        async def on_submit(self, interaction: discord.Interaction):
+            info["nombre"] = str(self.nombre)
+            info["numero"] = str(self.numero)
+            info["foto"] = str(self.foto)
+            info["compra"] = str(self.compra)
+            info["venta"] = str(self.venta)
+            guardar_datos(datos)
+            await interaction.response.send_message(f"✏️ Alianza **{alianza}** actualizada con éxito.", ephemeral=True)
+
+    class EditButton(discord.ui.View):
+        @discord.ui.button(label="✏️ Editar", style=discord.ButtonStyle.primary)
+        async def edit(self, interaction: discord.Interaction, button: discord.ui.Button):
+            await interaction.response.send_modal(EditModal())
+
+    await ctx.send(f"🔧 Editar alianza **{alianza}**", view=EditButton())
+
+@bot.command()
+async def deletealianzas(ctx, alianza=None):
+    if ctx.author.id not in USERS_ALLOWED:
+        return await ctx.send("⛔ No tienes permiso para usar este comando.")
+
+    if alianza is None:
+        return await ctx.send("⚠️ Uso correcto: `!deletealianzas <alianza>`")
+
+    alianza = alianza.lower()
+    datos = cargar_datos()
+
+    if alianza not in datos:
+        return await ctx.send(f"❌ La alianza **{alianza}** no está registrada.")
+
+    del datos[alianza]
+    guardar_datos(datos)
+
+    await ctx.send(f"🗑️ Alianza **{alianza}** eliminada correctamente.")
+
 
 @bot.event
 async def on_ready():
