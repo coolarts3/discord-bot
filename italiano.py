@@ -36,7 +36,6 @@ def guardar_datos(data):
 
 # ---------- MODAL ----------
 class ModalAlianza(discord.ui.Modal, title="Registrar Alianza"):
-    bot.tree.add_command(setalianzas)
 
     nombre = discord.ui.TextInput(label="Nombre familia", style=discord.TextStyle.short)
     numero = discord.ui.TextInput(label="Número familia", style=discord.TextStyle.short)
