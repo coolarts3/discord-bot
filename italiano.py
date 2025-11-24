@@ -165,7 +165,7 @@ async def setalianzas(ctx, alianza=None):
     class OpenModal(discord.ui.View):
         @discord.ui.button(label="📋 Abrir formulario", style=discord.ButtonStyle.green)
         async def open(self, interaction, button):
-            await interaction.response.send_modal(ModalAlianza(alianza.lower()))
+            await interaction.response.send_modal(EditModal(alianza.lower(), data))
 
     await ctx.send(f"📝 Configurar **{alianza.lower()}**:", view=OpenModal(), delete_after=30)
 
