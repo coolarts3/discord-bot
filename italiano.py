@@ -9,7 +9,8 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 intents.presences = True
-bot = commands.Bot(command_prefix="?", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
+tree = bot.tree
 
 # IDs permitidas para configurar alianzas
 USERS_ALLOWED = [682643114560848012, 352471626400661514]  # 👈 Cambia por tus IDs
@@ -35,6 +36,7 @@ def guardar_datos(data):
 
 # ---------- MODAL ----------
 class ModalAlianza(discord.ui.Modal, title="Registrar Alianza"):
+    bot.tree.add_command(setalianzas)
 
     nombre = discord.ui.TextInput(label="Nombre familia", style=discord.TextStyle.short)
     numero = discord.ui.TextInput(label="Número familia", style=discord.TextStyle.short)
@@ -123,6 +125,7 @@ async def alianzas(ctx):
 @app_commands.command(name="setalianzas", description="Configurar una alianza")
 @app_commands.describe(alianza="Nombre de la alianza que deseas configurar")
 async def setalianzas(interaction: discord.Interaction, alianza: str):
+    bot.tree.add_command(setalianzas)
 
     # Permitir solo IDs autorizadas
     if interaction.user.id not in USERS_ALLOWED:
