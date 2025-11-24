@@ -75,13 +75,19 @@ class ModalAlianza(Modal, title="Registrar Alianza"):
         super().__init__()
         self.alianza = alianza
 
-        self.nombre = TextInput(label="Nombre de la familia")
-        self.numero = TextInput(label="Número de la familia")
-        self.foto = TextInput(label="URL de la imagen")
-        self.compra = TextInput(label="Desc. compras (%)")
-        self.venta = TextInput(label="Desc. ventas (%)")
+        self.nombre = TextInput(label="Nombre familia")
+        self.numero = TextInput(label="Número familia")
+        self.foto = TextInput(label="URL imagen")
+        self.compra = TextInput(label="Compra %")
+        self.venta = TextInput(label="Venta %")
 
-    async def on_submit(self, interaction: discord.Interaction):
+        self.add_item(self.nombre)
+        self.add_item(self.numero)
+        self.add_item(self.foto)
+        self.add_item(self.compra)
+        self.add_item(self.venta)
+
+    async def on_submit(self, interaction):
         guardar_alianza(
             self.alianza,
             str(self.nombre),
@@ -176,27 +182,41 @@ async def editalianzas(ctx, alianza=None):
     if not data:
         return await ctx.send(f"❌ La alianza **{alianza}** no existe.", delete_after=10)
 
-    class EditModal(Modal, title=f"Editar {alianza.lower()}"):
-        nombre = TextInput(label="Nombre", default=data["nombre"])
-        numero = TextInput(label="Número", default=data["numero"])
-        foto = TextInput(label="URL Foto", default=data["foto"])
-        compra = TextInput(label="Descuento compra", default=data["compra"])
-        venta = TextInput(label="Descuento venta", default=data["venta"])
+    class EditModal(Modal, title="Editar alianza"):
+    def __init__(self, alianza, data):
+        super().__init__()
+        self.alianza = alianza
 
-        async def on_submit(self, interaction):
-            guardar_alianza(
-                alianza.lower(), str(self.nombre), str(self.numero),
-                str(self.foto), str(self.compra), str(self.venta)
-            )
-            await interaction.response.send_message(
-                f"✏️ Alianza **{alianza}** actualizada correctamente.",
-                delete_after=600
-            )
+        self.nombre = TextInput(label="Nombre familia", default=data["nombre"])
+        self.numero = TextInput(label="Número familia", default=data["numero"])
+        self.foto = TextInput(label="URL imagen", default=data["foto"])
+        self.compra = TextInput(label="Compra %", default=data["compra"])
+        self.venta = TextInput(label="Venta %", default=data["venta"])
+
+        self.add_item(self.nombre)
+        self.add_item(self.numero)
+        self.add_item(self.foto)
+        self.add_item(self.compra)
+        self.add_item(self.venta)
+
+    async def on_submit(self, interaction):
+        guardar_alianza(
+            self.alianza,
+            str(self.nombre),
+            str(self.numero),
+            str(self.foto),
+            str(self.compra),
+            str(self.venta)
+        )
+        await interaction.response.send_message(
+            f"✏️ Alianza **{self.alianza}** actualizada correctamente.",
+            delete_after=10
+        )
 
     class ButtonEdit(discord.ui.View):
         @discord.ui.button(label="✏️ Editar", style=discord.ButtonStyle.primary)
         async def btn(self, interaction, button):
-            await interaction.response.send_modal(EditModal())
+            await interaction.response.send_modal(EditModal(alianza.lower(), data))
 
     await ctx.send(f"🔧 Editar alianza **{alianza.lower()}**:", view=ButtonEdit(), delete_after=30)
 
