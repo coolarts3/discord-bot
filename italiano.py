@@ -267,6 +267,126 @@ async def aviso(ctx, *, mensaje=None):
     await asyncio.sleep(600)
     await aviso.delete()
 
+# ⬇️ IDs de usuarios que pueden crear planes
+USERS_ALLOWED_PLAN = [352471626400661514, 682643114560848012]
+
+# ⬇️ Canal donde funciona exclusivamente el comando !plan
+CANAL_PLANES = 1415492411022512213  # ⬅️ CAMBIA ESTE NÚMERO POR LA ID DEL CANAL
+
+# ⬇️ Emoji para apuntarse al atraco
+EMOJI_PARTICIPAR = "🔫"
+
+# ⚙️ Memoria de planes activos
+planes_activos = {}  # message_id : {"msg": msg, "usuarios": set(), "embed": embed}
+
+
+# 📌 Modal para crear un plan
+class ModalPlan(Modal, title="📋 Crear Plan de Atraco"):
+    lugar = TextInput(label="📍 Lugar del atraco", required=True)
+    hora = TextInput(label="⏳ Hora del golpe", required=True)
+    objetivo = TextInput(label="🎯 Objetivo", required=True)
+    participantes = TextInput(label="👥 Participantes previstos", required=True)
+    clave = TextInput(label="🔐 Palabra clave (opcional)", required=False)
+    detalles = TextInput(label="🧠 Detalles extra", style=discord.TextStyle.paragraph, required=False)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="🔥 PLAN DE ATRACO EN MARCHA 🔥",
+            color=discord.Color.red()
+        )
+        embed.add_field(name="📍 Lugar", value=self.lugar.value, inline=False)
+        embed.add_field(name="⏳ Hora", value=self.hora.value, inline=True)
+        embed.add_field(name="🎯 Objetivo", value=self.objetivo.value, inline=True)
+        embed.add_field(name="👥 Participantes previstos", value=self.participantes.value, inline=True)
+
+        if self.clave.value:
+            embed.add_field(name="🔐 Palabra clave", value=self.clave.value, inline=False)
+        if self.detalles.value:
+            embed.add_field(name="🧠 Detalles extra", value=self.detalles.value, inline=False)
+
+        # contador dinámico de confirmados
+        embed.add_field(name="👥 Participantes confirmados", value="0", inline=False)
+
+        embed.set_footer(text=f"Plan creado por {interaction.user}", icon_url=interaction.user.avatar)
+        embed.timestamp = discord.utils.utcnow()
+
+        msg = await interaction.channel.send(embed=embed)
+        await msg.add_reaction(EMOJI_PARTICIPAR)
+
+        planes_activos[msg.id] = {"msg": msg, "usuarios": set(), "embed": embed}
+
+        await interaction.response.send_message("📡 Plan enviado con éxito — los miembros pueden reaccionar para unirse.", ephemeral=True)
+
+        # Auto borrado después de 15 minutos
+        await asyncio.sleep(900)
+        try:
+            await msg.delete()
+        except:
+            pass
+        planes_activos.pop(msg.id, None)
+
+
+# 📌 Comando !plan
+@bot.command()
+async def plan(ctx):
+    # Si no se usa en el canal correcto
+    if ctx.channel.id != CANAL_PLANES:
+        aviso = await ctx.reply(f"⛔ Este comando solo puede usarse en <#{CANAL_PLANES}>.", delete_after=10)
+        await asyncio.sleep(5)
+        await aviso.delete()
+        await ctx.message.delete()
+        return
+
+    # Si no tiene permiso
+    if ctx.author.id not in USERS_ALLOWED_PLAN:
+        return await ctx.reply("⛔ No tienes permiso para planear atracos.", delete_after=7)
+
+    await ctx.send_modal(ModalPlan())
+
+
+# 📌 Reacción para unirse al plan
+@bot.event
+async def on_raw_reaction_add(payload):
+    if payload.message_id not in planes_activos:
+        return
+    if str(payload.emoji) != EMOJI_PARTICIPAR:
+        return
+    if payload.user_id == bot.user.id:
+        return
+
+    data = planes_activos[payload.message_id]
+    data["usuarios"].add(payload.user_id)
+
+    embed = data["embed"]
+    embed.set_field_at(
+        index=3,
+        name="👥 Participantes confirmados",
+        value=str(len(data["usuarios"])),
+        inline=False
+    )
+    await data["msg"].edit(embed=embed)
+
+
+# 📌 Al quitar la reacción, se resta el participante
+@bot.event
+async def on_raw_reaction_remove(payload):
+    if payload.message_id not in planes_activos:
+        return
+    if str(payload.emoji) != EMOJI_PARTICIPAR:
+        return
+
+    data = planes_activos[payload.message_id]
+    data["usuarios"].discard(payload.user_id)
+
+    embed = data["embed"]
+    embed.set_field_at(
+        index=3,
+        name="👥 Participantes confirmados",
+        value=str(len(data["usuarios"])),
+        inline=False
+    )
+    await data["msg"].edit(embed=embed)
+
 
 # ───── Startup ─────────────────────────────────────────────
 
