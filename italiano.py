@@ -329,19 +329,24 @@ class ModalPlan(Modal, title="📋 Crear Plan de Atraco"):
 # 📌 Comando !plan
 @bot.command()
 async def plan(ctx):
-    # Si no se usa en el canal correcto
+    # ❌ Bloquear si no es el canal correcto
     if ctx.channel.id != CANAL_PLANES:
-        aviso = await ctx.reply(f"⛔ Este comando solo puede usarse en <#{CANAL_PLANES}>.", delete_after=10)
+        aviso = await ctx.reply(f"⛔ Este comando solo puede usarse en <#{CANAL_PLANES}>.")
         await asyncio.sleep(5)
         await aviso.delete()
         await ctx.message.delete()
         return
 
-    # Si no tiene permiso
+    # ❌ Bloquear si no tiene permisos
     if ctx.author.id not in USERS_ALLOWED_PLAN:
         return await ctx.reply("⛔ No tienes permiso para planear atracos.", delete_after=7)
 
-    await ctx.send_modal(ModalPlan())
+    class ViewBotonPlan(discord.ui.View):
+        @discord.ui.button(label="📋 Crear plan de atraco", style=discord.ButtonStyle.red)
+        async def abrir_modal(self, interaction: discord.Interaction, button: discord.ui.Button):
+            await interaction.response.send_modal(ModalPlan())
+
+    await ctx.send("🕵️ Pulsa el botón para crear un plan de atraco:", view=ViewBotonPlan())
 
 
 # 📌 Reacción para unirse al plan
