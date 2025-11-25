@@ -289,16 +289,21 @@ class ModalPlan(discord.ui.Modal, title="📋 Crear Plan de Atraco"):
         self.hora = TextInput(label="⏳ Hora del golpe", required=True)
         self.objetivo = TextInput(label="🎯 Objetivo", required=True)
         self.participantes = TextInput(label="👥 Participantes previstos", required=True)
-        self.clave = TextInput(label="🔐 Palabra clave (opcional)", required=False)
-        self.detalles = TextInput(label="🧠 Detalles extra", style=discord.TextStyle.paragraph, required=False)
 
-        # Agregar inputs asegurando 1 por fila
-        self.add_item(self.lugar)          # fila 1
-        self.add_item(self.hora)           # fila 2
-        self.add_item(self.objetivo)       # fila 3
-        self.add_item(self.participantes)  # fila 4
-        self.add_item(self.clave)          # fila 5
-        self.add_item(self.detalles)       # fila 6 (párrafo)
+        # campo combinado: palabra clave + detalles
+        self.detalles = TextInput(
+            label="📌 Clave + detalles del plan",
+            placeholder="Ejemplo:\nPalabra clave: Azul.\nRuta de escape: tuneles.\nArmamento: rifles.\nRoles: tirador / conductor / hacker…",
+            style=discord.TextStyle.paragraph,
+            required=False
+        )
+
+        # máximo 5 → ahora está correcto
+        self.add_item(self.lugar)
+        self.add_item(self.hora)
+        self.add_item(self.objetivo)
+        self.add_item(self.participantes)
+        self.add_item(self.detalles)
 
     async def on_submit(self, interaction: discord.Interaction):
         embed = discord.Embed(
@@ -309,26 +314,19 @@ class ModalPlan(discord.ui.Modal, title="📋 Crear Plan de Atraco"):
         embed.add_field(name="⏳ Hora", value=self.hora.value, inline=True)
         embed.add_field(name="🎯 Objetivo", value=self.objetivo.value, inline=True)
         embed.add_field(name="👥 Participantes previstos", value=self.participantes.value, inline=True)
+        embed.add_field(name="🧠 Clave / Detalles del plan", value=self.detalles.value or "No especificado", inline=False)
 
-        if self.clave.value:
-            embed.add_field(name="🔐 Palabra clave", value=self.clave.value, inline=False)
-        if self.detalles.value:
-            embed.add_field(name="🧠 Detalles extra", value=self.detalles.value, inline=False)
-
-        # contador dinámico de confirmados
         embed.add_field(name="👥 Participantes confirmados", value="0", inline=False)
-
         embed.set_footer(text=f"Plan creado por {interaction.user}", icon_url=interaction.user.avatar)
         embed.timestamp = discord.utils.utcnow()
 
         msg = await interaction.channel.send(embed=embed)
-        await msg.add_reaction(EMOJI_PARTICIPAR)
+        await msg.add_reaction("🔫")
 
         planes_activos[msg.id] = {"msg": msg, "usuarios": set(), "embed": embed}
 
-        await interaction.response.send_message("📡 Plan enviado con éxito — los miembros pueden reaccionar para unirse.", ephemeral=True)
+        await interaction.response.send_message("📡 Plan enviado — los miembros pueden reaccionar para unirse.", ephemeral=True)
 
-        # Auto borrado después de 15 minutos
         await asyncio.sleep(900)
         try:
             await msg.delete()
