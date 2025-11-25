@@ -543,28 +543,27 @@ class ModalVerificacion(Modal, title="📋 Verificación de identidad"):
     async def on_submit(self, interaction: discord.Interaction):
 
         # Validar nombre
-        if not re.match(r"^[A-Za-zÀ-ÿ]+$", self.nombre.value):
-            return await interaction.response.send_message(
-                "❌ El nombre debe contener solo una palabra y solo letras.",
-                ephemeral=True,
-            )
+nombre = self.nombre.value.strip()
+apellido = self.apellido.value.strip()
+codigo = self.codigo.value.strip()
 
-        # Validar apellido
-        if not re.match(r"^[A-Za-zÀ-ÿ]+$", self.apellido.value):
-            return await interaction.response.send_message(
-                "❌ El apellido debe contener solo una palabra y solo letras.",
-                ephemeral=True,
-            )
+if not re.match(r"^[A-Za-zÀ-ÿ]+$", nombre):
+    return await interaction.response.send_message(
+        "❌ El **nombre** debe ser una sola palabra y solo letras.", ephemeral=True
+    )
 
-        # Validar código
-        if not re.match(r"^\d{2,6}$", self.codigo.value):
-            return await interaction.response.send_message(
-                "❌ El ID debe contener SOLO números y tener entre **2 y 6 dígitos**.",
-                ephemeral=True,
-            )
+if not re.match(r"^[A-Za-zÀ-ÿ]+$", apellido):
+    return await interaction.response.send_message(
+        "❌ El **apellido** debe ser una sola palabra y solo letras.", ephemeral=True
+    )
+
+if not re.match(r"^\d{2,6}$", codigo):
+    return await interaction.response.send_message(
+        "❌ El **ID** debe contener solo números y tener entre **2 y 6 dígitos**.", ephemeral=True
+    )
 
         # Crear formato final
-        nuevo_nombre = f"{self.nombre.value} {self.apellido.value} | {self.codigo.value}"
+        nuevo_nombre = f"{nombre} {apellido} | {codigo}"
 
         # Asignar rol
         rol = interaction.guild.get_role(ROL_VERIFICADO)
