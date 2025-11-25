@@ -463,12 +463,14 @@ async def publicar_menu_precios():
         print("⚠ CANAL_PRECIOS_ARM no encontrado")
         return
 
-    async for msg in canal.history(limit=1000):
+async for msg in canal.history(limit=500):
     if msg.author == bot.user:
         try:
             await msg.delete()
         except:
             pass
+
+
 
     embed = discord.Embed(
         title="🔫 PRECIO DE ARMAS 🔫",
