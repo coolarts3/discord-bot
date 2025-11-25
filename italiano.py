@@ -526,6 +526,121 @@ async def on_message(message):
     await bot.process_commands(message)
 
 
+# ❗ Pon tus IDs aquí
+CANAL_VERIFICACION = 1442810380446335036
+ROL_VERIFICADO = 1415492409269424214
+
+# Guardamos el mensaje fijo del canal
+mensaje_verificacion = None
+
+
+# ---------- MODAL ----------
+class ModalVerificacion(Modal, title="📋 Verificación de identidad"):
+    nombre = TextInput(label="Nombre (solo una palabra)", required=True)
+    apellido = TextInput(label="Apellido (solo una palabra)", required=True)
+    codigo = TextInput(label="ID numérica (2–6 dígitos)", required=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+
+        # Validar nombre
+        if not re.match(r"^[A-Za-zÀ-ÿ]+$", self.nombre.value):
+            return await interaction.response.send_message(
+                "❌ El nombre debe contener solo una palabra y solo letras.",
+                ephemeral=True,
+            )
+
+        # Validar apellido
+        if not re.match(r"^[A-Za-zÀ-ÿ]+$", self.apellido.value):
+            return await interaction.response.send_message(
+                "❌ El apellido debe contener solo una palabra y solo letras.",
+                ephemeral=True,
+            )
+
+        # Validar código
+        if not re.match(r"^\d{2,6}$", self.codigo.value):
+            return await interaction.response.send_message(
+                "❌ El ID debe contener SOLO números y tener entre **2 y 6 dígitos**.",
+                ephemeral=True,
+            )
+
+        # Crear formato final
+        nuevo_nombre = f"{self.nombre.value} {self.apellido.value} | {self.codigo.value}"
+
+        # Asignar rol
+        rol = interaction.guild.get_role(ROL_VERIFICADO)
+        if rol:
+            await interaction.user.add_roles(rol, reason="Verificación completada")
+
+        # Cambiar nickname
+        try:
+            await interaction.user.edit(nick=nuevo_nombre)
+        except:
+            pass
+
+        await interaction.response.send_message(
+            "✅ Verificación completada con éxito. ¡Bienvenido al servidor!",
+            ephemeral=True
+        )
+
+
+# ---------- BOTÓN DEL MENSAJE PERMANENTE ----------
+class BotonVerificar(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="📌 Verificar identidad", style=discord.ButtonStyle.green)
+    async def abrir_modal(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ModalVerificacion())
+
+
+# ---------- PUBLICAR MENSAJE PERMANENTE ----------
+async def publicar_mensaje_permanente():
+    global mensaje_verificacion
+    canal = bot.get_channel(CANAL_VERIFICACION)
+    if not canal:
+        print("⚠ El canal de verificación no se encontró")
+        return
+
+    # Eliminar mensajes previos del bot
+    async for msg in canal.history(limit=50):
+        if msg.author == bot.user:
+            try:
+                await msg.delete()
+            except:
+                pass
+
+    embed = discord.Embed(
+        title="🔒 VERIFICACIÓN OBLIGATORIA",
+        description="Para acceder al servidor debes **verificar tu identidad**.\n\n"
+                    "Pulsa el botón de abajo para continuar.\n"
+                    "📌 **Formato obligatorio:** Nombre + Apellido + Código",
+        color=discord.Color.gold(),
+    )
+    embed.set_footer(text="Sistema automático de verificación")
+
+    mensaje_verificacion = await canal.send(embed=embed, view=BotonVerificar())
+    print("✔ Mensaje de verificación publicado nuevamente")
+
+
+# ---------- COMANDO !verificar ----------
+@bot.command()
+async def verificar(ctx):
+    """Vuelve a publicar el mensaje permanente (solo para staff)"""
+    if ctx.channel.id != CANAL_VERIFICACION:
+        await ctx.reply("⛔ Solo puedes usar este comando en el canal de verificación.", delete_after=6)
+        await ctx.message.delete()
+        return
+
+    await publicar_mensaje_permanente()
+    await ctx.message.delete()
+
+
+# ---------- AL INICIAR EL BOT ----------
+@bot.event
+async def on_ready():
+    print(f"🤖 Bot conectado como {bot.user}")
+    await publicar_mensaje_permanente()
+
 # ───── Startup ─────────────────────────────────────────────
 
 @bot.event
