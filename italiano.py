@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import os
 import asyncio
-from discord.ui import Modal, TextInput
+from discord.ui import View, Modal, TextInput
 import sqlite3
 
 # ───── Base de datos │ alianzas.db ─────────────────────────────────
