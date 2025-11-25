@@ -287,7 +287,7 @@ class ModalPlan(discord.ui.Modal, title="📋 Crear Plan de Atraco"):
 
         self.lugar = TextInput(label="📍 Lugar del atraco", placeholder="Ej: Banco Central")
         self.hora = TextInput(label="⏳ Hora del golpe", placeholder="Ej: 22:30")
-        self.objetivo = TextInput(label="🎯 Objetivo", placeholder="Ej: Cámara de seguridad")
+        self.objetivo = TextInput(label="🎯 Dinero", placeholder="Ej: Cámara de seguridadp")
         self.participantes = TextInput(label="👥 Participantes previstos", placeholder="Ej: 5")
         
         # campo combinado: palabra clave + detalles
@@ -312,7 +312,7 @@ class ModalPlan(discord.ui.Modal, title="📋 Crear Plan de Atraco"):
         )
         embed.add_field(name="📍 Lugar", value=self.lugar.value, inline=False)
         embed.add_field(name="⏳ Hora", value=self.hora.value, inline=True)
-        embed.add_field(name="🎯 Objetivo", value=self.objetivo.value, inline=True)
+        embed.add_field(name="🎯 Dinero", value=self.objetivo.value, inline=True)
         embed.add_field(name="👥 Participantes previstos", value=self.participantes.value, inline=True)
         embed.add_field(name="🧠 Clave / Detalles del plan", value=self.detalles.value or "No especificado", inline=False)
 
@@ -355,7 +355,7 @@ async def plan(ctx):
         async def abrir_modal(self, interaction: discord.Interaction, button: discord.ui.Button):
             await interaction.response.send_modal(ModalPlan())
 
-    await ctx.send("🕵️ Pulsa el botón para crear un plan de atraco:", view=ViewBotonPlan())
+    await ctx.send("🕵️ Pulsa el botón para crear un plan de atraco:", view=ViewBotonPlan(), delete_after=60)
 
 
 # 📌 Reacción para unirse al plan
