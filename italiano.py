@@ -540,46 +540,44 @@ class ModalVerificacion(Modal, title="📋 Verificación de identidad"):
     apellido = TextInput(label="Apellido (solo una palabra)", required=True)
     codigo = TextInput(label="ID numérica (2–6 dígitos)", required=True)
 
-    async def on_submit(self, interaction: discord.Interaction):
+async def on_submit(self, interaction):
+    nombre = self.nombre.value.strip()
+    apellido = self.apellido.value.strip()
+    codigo = self.codigo.value.strip()
 
-        # Validar nombre
-nombre = self.nombre.value.strip()
-apellido = self.apellido.value.strip()
-codigo = self.codigo.value.strip()
-
-if not re.match(r"^[A-Za-zÀ-ÿ]+$", nombre):
-    return await interaction.response.send_message(
-        "❌ El **nombre** debe ser una sola palabra y solo letras.", ephemeral=True
-    )
-
-if not re.match(r"^[A-Za-zÀ-ÿ]+$", apellido):
-    return await interaction.response.send_message(
-        "❌ El **apellido** debe ser una sola palabra y solo letras.", ephemeral=True
-    )
-
-if not re.match(r"^\d{2,6}$", codigo):
-    return await interaction.response.send_message(
-        "❌ El **ID** debe contener solo números y tener entre **2 y 6 dígitos**.", ephemeral=True
-    )
-
-        # Crear formato final
-        nuevo_nombre = f"{nombre} {apellido} | {codigo}"
-
-        # Asignar rol
-        rol = interaction.guild.get_role(ROL_VERIFICADO)
-        if rol:
-            await interaction.user.add_roles(rol, reason="Verificación completada")
-
-        # Cambiar nickname
-        try:
-            await interaction.user.edit(nick=nuevo_nombre)
-        except:
-            pass
-
-        await interaction.response.send_message(
-            "✅ Verificación completada con éxito. ¡Bienvenido al servidor!",
+    if not re.match(r"^[A-Za-zÀ-ÿ]+$", nombre):
+        return await interaction.response.send_message(
+            "❌ El **nombre** debe ser una sola palabra y solo letras.",
             ephemeral=True
         )
+
+    if not re.match(r"^[A-Za-zÀ-ÿ]+$", apellido):
+        return await interaction.response.send_message(
+            "❌ El **apellido** debe ser una sola palabra y solo letras.",
+            ephemeral=True
+        )
+
+    if not re.match(r"^\d{2,6}$", codigo):
+        return await interaction.response.send_message(
+            "❌ El **ID** debe contener solo números y tener entre **2 y 6 dígitos**.",
+            ephemeral=True
+        )
+
+    nuevo_nombre = f"{nombre} {apellido} | {codigo}"
+
+    rol = interaction.guild.get_role(ROL_VERIFICADO)
+    if rol:
+        await interaction.user.add_roles(rol, reason="Verificación completada")
+
+    try:
+        await interaction.user.edit(nick=nuevo_nombre)
+    except:
+        pass
+
+    await interaction.response.send_message(
+        "✅ Verificación completada con éxito. ¡Bienvenido al servidor!",
+        ephemeral=True
+    )
 
 
 # ---------- BOTÓN DEL MENSAJE PERMANENTE ----------
