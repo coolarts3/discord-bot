@@ -285,15 +285,15 @@ class ModalPlan(discord.ui.Modal, title="📋 Crear Plan de Atraco"):
     def __init__(self):
         super().__init__()
 
-        self.lugar = TextInput(label="📍 Lugar del atraco", required=True)
-        self.hora = TextInput(label="⏳ Hora del golpe", required=True)
-        self.objetivo = TextInput(label="🎯 Objetivo", required=True)
-        self.participantes = TextInput(label="👥 Participantes previstos", required=True)
-
+        self.lugar = TextInput(label="📍 Lugar del atraco", placeholder="Ej: Banco Central")
+        self.hora = TextInput(label="⏳ Hora del golpe", placeholder="Ej: 22:30")
+        self.objetivo = TextInput(label="🎯 Objetivo", placeholder="Ej: Cámara de seguridad")
+        self.participantes = TextInput(label="👥 Participantes previstos", placeholder="Ej: 5")
+        
         # campo combinado: palabra clave + detalles
         self.detalles = TextInput(
-            label="📌 Clave + detalles del plan",
-            placeholder="Ejemplo:\nPalabra clave: Azul.\nRuta de escape: tuneles.\nArmamento: rifles.\nRoles: tirador / conductor / hacker…",
+            label="🧠 Detalles extra",
+            placeholder="Información y notas del atraco...",
             style=discord.TextStyle.paragraph,
             required=False
         )
