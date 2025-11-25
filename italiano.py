@@ -243,6 +243,30 @@ async def deletealianzas(ctx, alianza=None):
 async def hola(ctx):
     await ctx.send("👋 Hola, soy el segundo bot.", delete_after=10)
 
+@bot.command()
+async def aviso(ctx, *, mensaje=None):
+    if not mensaje:
+        return await ctx.send("❌ Uso correcto: `!aviso <mensaje>`", delete_after=8)
+
+    # Imagen de cabecera del aviso
+    banner = "https://i.imgur.com/CfHvi0p.png"  # Puedes cambiarla por otra
+
+    embed = discord.Embed(
+        title="⚠️ AVISO IMPORTANTE",
+        description=f"📢 **{mensaje}**",
+        color=discord.Color.red()
+    )
+    embed.set_image(url=banner)
+    embed.set_footer(text=f"Anuncio realizado por {ctx.author}", icon_url=ctx.author.avatar)
+    embed.timestamp = discord.utils.utcnow()
+
+    aviso = await ctx.send(content="🔔 @everyone", embed=embed)
+    await ctx.message.delete()
+
+    # borrar automáticamente después de 10 minutos
+    await asyncio.sleep(600)
+    await aviso.delete()
+
 
 # ───── Startup ─────────────────────────────────────────────
 
