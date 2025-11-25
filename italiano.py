@@ -405,10 +405,10 @@ async def on_raw_reaction_remove(payload):
 CANAL_PRECIOS_ARM = 1442783256704712795  # ⬅️ ID del canal permitido
 USERS_ALLOWED_PRECIOS = [352471626400661514, 352471626400661514]  # ⬅️ IDs que tienen permiso
 
-IMG_0  = "URL_DE_IMAGEN_0"
-IMG_20 = "URL_DE_IMAGEN_20"
-IMG_25 = "URL_DE_IMAGEN_25"
-IMG_30 = "URL_DE_IMAGEN_30"
+IMG_0  = "https://i.imgur.com/BWLOxla.png"
+IMG_20 = "https://i.imgur.com/ediQEet.png"
+IMG_25 = "https://i.imgur.com/eXVpoQN.png"
+IMG_30 = "https://i.imgur.com/AAqnNcQ.png"
 
 ultimo_mensaje_precios = None  # se usará para restaurar el mensaje tras un reinicio
 
