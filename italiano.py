@@ -499,18 +499,30 @@ async def preciosarm(ctx):
     await publicar_menu_precios()
     await ctx.message.delete()
 
+CANALES_SOLO_COMANDOS = [
+    1442618930291281960,   # ID del canal 1
+    234567890123456789,   # ID del canal 2
+]
+
 @bot.event
 async def on_message(message):
-    # ignorar mensajes del propio bot
     if message.author == bot.user:
         return
 
-    # si el mensaje empieza por "!"
+    # 🟢 BORRAR comandos "!" después de 10 segundos
     if message.content.startswith("!"):
-        # borrar después de 10 segundos
         await message.delete(delay=10)
+        return await bot.process_commands(message)
 
-    # NECESARIO para que sigan funcionando los comandos
+    # 🔴 BORRAR mensajes que NO sean comandos en canales restringidos
+    if message.channel.id in CANALES_SOLO_COMANDOS:
+        try:
+            await message.delete()
+        except:
+            pass
+        return  # No procesar comandos si no empiezan por "!"
+
+    # NECESARIO para que sigan funcionando los comandos en canales normales
     await bot.process_commands(message)
 
 
