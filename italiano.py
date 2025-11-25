@@ -22,8 +22,8 @@ conn = sqlite3.connect(DB)
 cursor = conn.cursor()
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS alianzas (
-    familia TEXT PRIMARY KEY,
-    material TEXT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    familia TEXT,
     numero TEXT,
     foto TEXT,
     compra TEXT,
