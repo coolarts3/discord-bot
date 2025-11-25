@@ -5,6 +5,47 @@ import asyncio
 from discord.ui import View, Modal, TextInput, Select
 import sqlite3
 
+class ModalNuevaAlianza(discord.ui.Modal, title="➕ Añadir nueva alianza"):
+    familia = TextInput(label="Familia", placeholder="Ej: Los Corleone")
+    numero = TextInput(label="Número identificador", placeholder="Ej: 12")
+    foto = TextInput(label="URL de la foto", placeholder="https://...")
+    compra = TextInput(label="Descuento de compra (%)", placeholder="Ej: 10")
+    venta = TextInput(label="Descuento de venta (%)", placeholder="Ej: 15")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        guardar_nueva(self.familia.value, self.numero.value, self.foto.value, self.compra.value, self.venta.value)
+        await interaction.response.send_message("✔ **Alianza añadida correctamente.**", ephemeral=True)
+        await publicar_menu()
+
+class ModalEditarAlianza(discord.ui.Modal, title="📝 Editar alianza"):
+    def __init__(self, id_fam, datos):
+        super().__init__()
+        self.id_fam = id_fam
+
+        self.familia = TextInput(label="Familia", default=datos["familia"])
+        self.numero = TextInput(label="Número", default=datos["numero"])
+        self.foto = TextInput(label="URL de foto", default=datos["foto"])
+        self.compra = TextInput(label="Compra %", default=datos["compra"])
+        self.venta = TextInput(label="Venta %", default=datos["venta"])
+
+        self.add_item(self.familia)
+        self.add_item(self.numero)
+        self.add_item(self.foto)
+        self.add_item(self.compra)
+        self.add_item(self.venta)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        actualizar_alianza(
+            self.id_fam,
+            self.familia.value,
+            self.numero.value,
+            self.foto.value,
+            self.compra.value,
+            self.venta.value
+        )
+        await interaction.response.send_message("✔ **Alianza actualizada correctamente.**", ephemeral=True)
+        await publicar_menu()
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -166,17 +207,12 @@ async def publicar_menu():
 
 # --------------- COMANDO PARA AÑADIR ---------------
 @bot.command()
-async def setalianzas(ctx, familia=None, numero=None, foto=None, compra=None, venta=None):
+async def setalianzas(ctx):
     if ctx.author.id not in USERS_ALLOWED:
         return await ctx.send("⛔ No tienes permiso.", delete_after=8)
 
-    if not all([familia, numero, foto, compra, venta]):
-        return await ctx.send("⬇ Formato correcto:\n`!setalianzas <familia> <numero> <url_foto> <compra%> <venta%>`", delete_after=12)
-
-    guardar_nueva(familia, numero, foto, compra, venta)
-    await ctx.send("✔ Añadida correctamente.", delete_after=8)
-
-    await publicar_menu()
+    await ctx.send("📌 Abriendo formulario de nueva alianza...", delete_after=5)
+    await ctx.send_modal(ModalNuevaAlianza())
 
 
 # --------------- COMANDO PARA BORRAR ---------------
@@ -192,6 +228,21 @@ async def deletealianza(ctx, id_fam=None):
     await ctx.send("🗑 Eliminada.", delete_after=6)
 
     await publicar_menu()
+
+@bot.command()
+async def editaralianzas(ctx, id_fam=None):
+    if ctx.author.id not in USERS_ALLOWED:
+        return await ctx.send("⛔ No tienes permiso.", delete_after=8)
+
+    if not id_fam or not id_fam.isdigit():
+        return await ctx.send("Uso: `!editaralianzas <ID>`", delete_after=8)
+
+    datos = obtener_info(int(id_fam))
+    if not datos:
+        return await ctx.send("❌ No existe una alianza con ese ID.", delete_after=8)
+
+    await ctx.send("📌 Abriendo formulario de edición...", delete_after=5)
+    await ctx.send_modal(ModalEditarAlianza(int(id_fam), datos))
 
 
 @bot.command()
