@@ -401,6 +401,97 @@ async def on_raw_reaction_remove(payload):
     )
     await data["msg"].edit(embed=embed)
 
+# ====== CONFIG ======
+CANAL_PRECIOS_ARM = 1442783256704712795  # ⬅️ ID del canal permitido
+USERS_ALLOWED_PRECIOS = [352471626400661514, 352471626400661514]  # ⬅️ IDs que tienen permiso
+
+IMG_0  = "URL_DE_IMAGEN_0"
+IMG_20 = "URL_DE_IMAGEN_20"
+IMG_25 = "URL_DE_IMAGEN_25"
+IMG_30 = "URL_DE_IMAGEN_30"
+
+ultimo_mensaje_precios = None  # se usará para restaurar el mensaje tras un reinicio
+
+
+# ====== SELECT ======
+class SelectPrecios(discord.ui.Select):
+    def __init__(self):
+        super().__init__(
+            placeholder="📌 Selecciona tu descuento de armas...",
+            options=[
+                discord.SelectOption(label="0% DESCUENTO"),
+                discord.SelectOption(label="20% DESCUENTO"),
+                discord.SelectOption(label="25% DESCUENTO"),
+                discord.SelectOption(label="30% DESCUENTO")
+            ]
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        user = interaction.user
+
+        # Selección de imagen según la opción
+        match self.values[0]:
+            case "0% DESCUENTO": img = IMG_0
+            case "20% DESCUENTO": img = IMG_20
+            case "25% DESCUENTO": img = IMG_25
+            case "30% DESCUENTO": img = IMG_30
+
+        try:
+            embed = discord.Embed(color=discord.Color.dark_red())
+            embed.set_image(url=img)
+            await user.send(f"🔫 **Tabla de precios {self.values[0]}**", embed=embed)
+            await interaction.response.send_message("📬 ¡Revisá tus MD!", ephemeral=True)
+        except:
+            await interaction.response.send_message(
+                "⚠ No puedo enviarte mensajes privados. Activa tus MD.",
+                ephemeral=True
+            )
+
+
+# ====== VIEW ======
+class ViewPrecios(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(SelectPrecios())
+
+
+# ====== FUNCIÓN PARA PUBLICAR EL MENSAJE PERMANENTE ======
+async def publicar_menu_precios():
+    global ultimo_mensaje_precios
+    canal = bot.get_channel(CANAL_PRECIOS_ARM)
+    if not canal:
+        print("⚠ CANAL_PRECIOS_ARM no encontrado")
+        return
+
+    await canal.purge(limit=1000)
+
+    embed = discord.Embed(
+        title="🔫 PRECIO DE ARMAS 🔫",
+        description="Selecciona a continuación tu descuento.\n📩 La tabla se enviará **por mensaje privado**.",
+        color=discord.Color.dark_red()
+    )
+
+    ultimo_mensaje_precios = await canal.send(embed=embed, view=ViewPrecios())
+    print("✔ Menú de precios publicado")
+
+
+# ====== COMANDO (RESTRINGIDO) ======
+@bot.command()
+async def preciosarm(ctx):
+    if ctx.author.id not in USERS_ALLOWED_PRECIOS:
+        await ctx.reply("⛔ No tienes permiso para usar este comando.", delete_after=8)
+        return
+
+    if ctx.channel.id != CANAL_PRECIOS_ARM:
+        aviso = await ctx.reply(f"⛔ Este comando solo puede usarse en <#{CANAL_PRECIOS_ARM}>.", delete_after=7)
+        await asyncio.sleep(5)
+        await aviso.delete()
+        await ctx.message.delete()
+        return
+
+    await publicar_menu_precios()
+    await ctx.message.delete()
+
 
 # ───── Startup ─────────────────────────────────────────────
 
