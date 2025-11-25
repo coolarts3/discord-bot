@@ -249,7 +249,7 @@ async def aviso(ctx, *, mensaje=None):
         return await ctx.send("❌ Uso correcto: `!aviso <mensaje>`", delete_after=8)
 
     # Imagen de cabecera del aviso
-    banner = "https://i.imgur.com/CfHvi0p.png"  # Puedes cambiarla por otra
+    banner = "https://i.imgur.com/SYlRwEf.png"  # Puedes cambiarla por otra
 
     embed = discord.Embed(
         title="⚠️ AVISO IMPORTANTE",
