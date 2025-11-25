@@ -281,13 +281,24 @@ planes_activos = {}  # message_id : {"msg": msg, "usuarios": set(), "embed": emb
 
 
 # 📌 Modal para crear un plan
-class ModalPlan(Modal, title="📋 Crear Plan de Atraco"):
-    lugar = TextInput(label="📍 Lugar del atraco", required=True)
-    hora = TextInput(label="⏳ Hora del golpe", required=True)
-    objetivo = TextInput(label="🎯 Objetivo", required=True)
-    participantes = TextInput(label="👥 Participantes previstos", required=True)
-    clave = TextInput(label="🔐 Palabra clave (opcional)", required=False)
-    detalles = TextInput(label="🧠 Detalles extra", style=discord.TextStyle.paragraph, required=False)
+class ModalPlan(discord.ui.Modal, title="📋 Crear Plan de Atraco"):
+    def __init__(self):
+        super().__init__()
+
+        self.lugar = TextInput(label="📍 Lugar del atraco", required=True)
+        self.hora = TextInput(label="⏳ Hora del golpe", required=True)
+        self.objetivo = TextInput(label="🎯 Objetivo", required=True)
+        self.participantes = TextInput(label="👥 Participantes previstos", required=True)
+        self.clave = TextInput(label="🔐 Palabra clave (opcional)", required=False)
+        self.detalles = TextInput(label="🧠 Detalles extra", style=discord.TextStyle.paragraph, required=False)
+
+        # Agregar inputs asegurando 1 por fila
+        self.add_item(self.lugar)          # fila 1
+        self.add_item(self.hora)           # fila 2
+        self.add_item(self.objetivo)       # fila 3
+        self.add_item(self.participantes)  # fila 4
+        self.add_item(self.clave)          # fila 5
+        self.add_item(self.detalles)       # fila 6 (párrafo)
 
     async def on_submit(self, interaction: discord.Interaction):
         embed = discord.Embed(
