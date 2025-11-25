@@ -50,6 +50,16 @@ class ViewAbrirModalAlianza(discord.ui.View):
     @discord.ui.button(label="➕ Crear nueva alianza", style=discord.ButtonStyle.green)
     async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(ModalNuevaAlianza())
+
+class ViewEditarAlianza(discord.ui.View):
+    def __init__(self, id_fam, datos):
+        super().__init__()
+        self.id_fam = id_fam
+        self.datos = datos
+
+    @discord.ui.button(label="✏ Editar esta alianza", style=discord.ButtonStyle.blurple)
+    async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ModalEditarAlianza(self.id_fam, self.datos))
         
 intents = discord.Intents.default()
 intents.message_content = True
@@ -169,7 +179,9 @@ class SelectAlianzas(discord.ui.Select):
         embed.set_image(url=info["foto"])
         embed.set_footer(text="Sistema de alianzas")
 
-        await interaction.response.send_message(embed=embed)
+        msg = await interaction.response.send_message(embed=embed)
+        await asyncio.sleep(30)  # segundos antes de borrar
+        await msg.delete()
 
 
 class ViewAlianzas(discord.ui.View):
@@ -245,8 +257,11 @@ async def editaralianzas(ctx, id_fam=None):
     if not datos:
         return await ctx.send("❌ No existe una alianza con ese ID.", delete_after=8)
 
-    await ctx.send("📌 Abriendo formulario de edición...", delete_after=5)
-    await ctx.send_modal(ModalEditarAlianza(int(id_fam), datos))
+    await ctx.send(
+        content=f"📌 Estás editando la alianza **{datos['familia']}**.\nPulsa el botón para abrir el formulario:",
+        view=ViewEditarAlianza(int(id_fam), datos),
+        delete_after=60
+    )
 
 
 @bot.command()
