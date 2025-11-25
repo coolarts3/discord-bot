@@ -74,6 +74,12 @@ DB = "/storage/alianzas.db"
 # ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
 # ▬▬▬▬▬▬ BASE DE DATOS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+import os
+
+DB_FOLDER = "/storage"
+DB = f"{DB_FOLDER}/alianzas.db"
+os.makedirs(DB_FOLDER, exist_ok=True)
+
 conn = sqlite3.connect(DB)
 cursor = conn.cursor()
 cursor.execute("""
@@ -88,6 +94,7 @@ CREATE TABLE IF NOT EXISTS alianzas (
 """)
 conn.commit()
 conn.close()
+
 
 def obtener_alianzas():
     conn = sqlite3.connect(DB)
