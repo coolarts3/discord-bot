@@ -70,7 +70,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # ▬▬▬▬▬▬ CONFIG ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 CANAL_ALIANZAS = 1442618930291281960  # ID del canal permanente
 USERS_ALLOWED = [352471626400661514, 352471626400661514]  # IDs con permiso
-DB = "alianzas.db"
+DB = "/storage/alianzas.db"
 # ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
 # ▬▬▬▬▬▬ BASE DE DATOS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
