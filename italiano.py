@@ -636,6 +636,7 @@ async def verificar(ctx):
 @bot.event
 async def on_ready():
     print(f"🤖 Bot conectado como {bot.user}")
+    await asyncio.sleep(5)
     await publicar_mensaje_permanente()
 
 # ───── Startup ─────────────────────────────────────────────
