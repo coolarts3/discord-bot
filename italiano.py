@@ -2,18 +2,28 @@ import discord
 from discord.ext import commands
 import os
 import asyncio
-from discord.ui import View, Modal, TextInput
+from discord.ui import View, Modal, TextInput, Select
 import sqlite3
 
-# ───── Base de datos │ alianzas.db ─────────────────────────────────
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+bot = commands.Bot(command_prefix="!", intents=intents)
 
+
+# ▬▬▬▬▬▬ CONFIG ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+CANAL_ALIANZAS = 1442618930291281960  # ID del canal permanente
+USERS_ALLOWED = [352471626400661514, 352471626400661514]  # IDs con permiso
 DB = "alianzas.db"
+# ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+
+# ▬▬▬▬▬▬ BASE DE DATOS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 conn = sqlite3.connect(DB)
 cursor = conn.cursor()
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS alianzas (
-    tipo TEXT PRIMARY KEY,
-    nombre TEXT,
+    familia TEXT PRIMARY KEY,
+    material TEXT,
     numero TEXT,
     foto TEXT,
     compra TEXT,
@@ -23,28 +33,37 @@ CREATE TABLE IF NOT EXISTS alianzas (
 conn.commit()
 conn.close()
 
-
-def guardar_alianza(tipo, nombre, numero, foto, compra, venta):
+def guardar_alianza(familia, material, numero, foto, compra, venta):
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT OR REPLACE INTO alianzas (tipo, nombre, numero, foto, compra, venta)
+        INSERT OR REPLACE INTO alianzas (familia, material, numero, foto, compra, venta)
         VALUES (?, ?, ?, ?, ?, ?)
-    """, (tipo, nombre, numero, foto, compra, venta))
+    """, (familia, material, numero, foto, compra, venta))
     conn.commit()
     conn.close()
 
 
-def cargar_alianza(tipo):
+def cargar_alianzas():
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
-    cursor.execute("SELECT nombre, numero, foto, compra, venta FROM alianzas WHERE tipo = ?", (tipo,))
+    cursor.execute("SELECT familia, material, numero, foto, compra, venta FROM alianzas")
+    data = cursor.fetchall()
+    conn.close()
+    return data
+
+
+def cargar_alianza(familia):
+    conn = sqlite3.connect(DB)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT material, numero, foto, compra, venta FROM alianzas WHERE familia = ?", (familia,))
     data = cursor.fetchone()
     conn.close()
     if not data:
         return None
     return {
-        "nombre": data[0],
+        "material": data[0],
         "numero": data[1],
         "foto": data[2],
         "compra": data[3],
@@ -52,191 +71,162 @@ def cargar_alianza(tipo):
     }
 
 
-def borrar_alianza(tipo):
+def borrar_alianza(familia):
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM alianzas WHERE tipo = ?", (tipo,))
+    cursor.execute("DELETE FROM alianzas WHERE familia = ?", (familia,))
     conn.commit()
     conn.close()
 
 
-# ───── Discord bot ─────────────────────────────────────────────
+# ▬▬▬▬▬▬ MENÚ PERMANENTE ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-bot = commands.Bot(command_prefix="!", intents=intents)
-
-USERS_ALLOWED = [682643114560848012, 352471626400661514]  # IDs con permiso
-CANAL_ALIANZAS = 1442618930291281960  # Canal permitido para !alianzas
-
-
-# ───── MODAL REGISTRO ─────────────────────────────
-
-class ModalAlianza(Modal, title="Registrar Alianza"):
-    def __init__(self, alianza):
-        super().__init__()
-        self.alianza = alianza
-        self.nombre = TextInput(label="Nombre familia")
-        self.numero = TextInput(label="Número familia")
-        self.foto = TextInput(label="URL imagen")
-        self.compra = TextInput(label="Compra %")
-        self.venta = TextInput(label="Venta %")
-
-        self.add_item(self.nombre)
-        self.add_item(self.numero)
-        self.add_item(self.foto)
-        self.add_item(self.compra)
-        self.add_item(self.venta)
-
-    async def on_submit(self, interaction):
-        guardar_alianza(
-            self.alianza,
-            str(self.nombre),
-            str(self.numero),
-            str(self.foto),
-            str(self.compra),
-            str(self.venta)
-        )
-        await interaction.response.send_message(
-            f"✅ Alianza **{self.alianza}** registrada correctamente.",
-            delete_after=20
-        )
-
-
-# ───── MODAL EDICIÓN ─────────────────────────────
-
-class EditModal(Modal, title="Editar alianza"):
-    def __init__(self, alianza, data):
-        super().__init__()
-        self.alianza = alianza
-        self.nombre = TextInput(label="Nombre familia", default=data["nombre"])
-        self.numero = TextInput(label="Número familia", default=data["numero"])
-        self.foto = TextInput(label="URL imagen", default=data["foto"])
-        self.compra = TextInput(label="Compra %", default=data["compra"])
-        self.venta = TextInput(label="Venta %", default=data["venta"])
-
-        self.add_item(self.nombre)
-        self.add_item(self.numero)
-        self.add_item(self.foto)
-        self.add_item(self.compra)
-        self.add_item(self.venta)
-
-    async def on_submit(self, interaction):
-        guardar_alianza(
-            self.alianza,
-            str(self.nombre),
-            str(self.numero),
-            str(self.foto),
-            str(self.compra),
-            str(self.venta)
-        )
-        await interaction.response.send_message(
-            f"✏️ Alianza **{self.alianza}** actualizada correctamente.",
-            delete_after=600
-        )
-
-
-# ───── Select View ─────────────────────────────
-
-class SelectAlianzas(discord.ui.Select):
+class SelectFamilias(Select):
     def __init__(self):
-        opciones = [
-            discord.SelectOption(label=a) for a in
-            ["porros", "armas", "lavado dinero", "desguace", "balas", "meta", "tarjetas"]
-        ]
-        super().__init__(placeholder="Selecciona una alianza…", options=opciones)
+        lista = cargar_alianzas()
+        opciones = [discord.SelectOption(label=f[0]) for f in lista] or [discord.SelectOption(label="Sin alianzas", description="Añade una con !setalianzas")]
+        super().__init__(placeholder="Selecciona una familia…", options=opciones)
 
-    async def callback(self, interaction):
-        data = cargar_alianza(self.values[0])
+    async def callback(self, interaction: discord.Interaction):
+        familia = self.values[0]
+        data = cargar_alianza(familia)
         if not data:
             return await interaction.response.send_message(
-                f"⚠️ La alianza **{self.values[0]}** no está configurada.",
-                delete_after=10
-            )
+                "⚠ Esa familia ya no existe.", ephemeral=True)
 
-        embed = discord.Embed(title=f"📌 Información de la alianza: {self.values[0]}", color=discord.Color.blue())
-        embed.add_field(name="🏷️ Nombre", value=data["nombre"], inline=False)
+        embed = discord.Embed(
+            title=f"📌 Información de la alianza — {familia}",
+            color=discord.Color.blue()
+        )
+        embed.add_field(name="📦 Material", value=data["material"], inline=False)
         embed.add_field(name="🔢 Número", value=data["numero"], inline=False)
         embed.add_field(name="💰 Compra", value=f"{data['compra']}%", inline=True)
         embed.add_field(name="🪙 Venta", value=f"{data['venta']}%", inline=True)
         embed.set_image(url=data["foto"])
         embed.set_footer(text="Sistema de alianzas")
 
-        await interaction.response.send_message(embed=embed, delete_after=120)
+        await interaction.response.send_message(embed=embed)
 
 
-class ViewAlianzas(discord.ui.View):
+class ViewAlianzas(View):
     def __init__(self):
         super().__init__(timeout=None)
-        self.add_item(SelectAlianzas())
+        self.add_item(SelectFamilias())
 
 
-# ───── COMANDOS ─────────────────────────────────────
-
-@bot.command()
-async def alianzas(ctx):
-    if ctx.channel.id != CANAL_ALIANZAS:
-        msg = await ctx.reply(f"⛔ Este comando solo puede usarse en <#{CANAL_ALIANZAS}>.", delete_after=10)
-        await asyncio.sleep(5)
-        await ctx.message.delete()
+async def publicar_mensaje_permanente():
+    canal = bot.get_channel(CANAL_ALIANZAS)
+    if not canal:
+        print("⚠ Canal de alianzas no encontrado")
         return
 
-    await ctx.send("📌 Selecciona una alianza:", view=ViewAlianzas(), delete_after=20)
+    async for msg in canal.history(limit=50):
+        if msg.author == bot.user:
+            try:
+                await msg.delete()
+            except:
+                pass
+
+    embed = discord.Embed(
+        title="🔰 SISTEMA DE ALIANZAS",
+        description="Selecciona una familia en el menú para ver los beneficios de comercio.",
+        color=discord.Color.gold(),
+    )
+    await canal.send(embed=embed, view=ViewAlianzas())
+    print("✔ Mensaje permanente de alianzas publicado")
+
+
+# ▬▬▬▬▬▬ MODALES PARA REGISTRO / EDICIÓN ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+
+class ModalAlianza(Modal, title="Registrar alianza"):
+    familia = TextInput(label="Nombre de la familia")
+    material = TextInput(label="Material (porros, armas, etc)")
+    numero = TextInput(label="Número familia")
+    foto = TextInput(label="URL imagen")
+    compra = TextInput(label="Descuento en compras (%)")
+    venta = TextInput(label="Descuento en ventas (%)")
+
+    async def on_submit(self, interaction):
+        guardar_alianza(self.familia.value, self.material.value, self.numero.value,
+                        self.foto.value, self.compra.value, self.venta.value)
+        await publicar_mensaje_permanente()
+        await interaction.response.send_message("✔ Alianza registrada correctamente.", ephemeral=True)
+
+
+class ModalEdit(Modal, title="Editar alianza"):
+    def __init__(self, familia, data):
+        super().__init__()
+        self.familia = familia
+        self.material = TextInput(label="Material", default=data["material"])
+        self.numero = TextInput(label="Número", default=data["numero"])
+        self.foto = TextInput(label="URL Imagen", default=data["foto"])
+        self.compra = TextInput(label="Compra %", default=data["compra"])
+        self.venta = TextInput(label="Venta %", default=data["venta"])
+
+        self.add_item(self.material)
+        self.add_item(self.numero)
+        self.add_item(self.foto)
+        self.add_item(self.compra)
+        self.add_item(self.venta)
+
+    async def on_submit(self, interaction):
+        guardar_alianza(
+            self.familia,
+            self.material.value,
+            self.numero.value,
+            self.foto.value,
+            self.compra.value,
+            self.venta.value
+        )
+        await publicar_mensaje_permanente()
+        await interaction.response.send_message("✏ Alianza actualizada.", ephemeral=True)
+
+
+# ▬▬▬▬▬▬ COMANDOS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+
+@bot.command()
+async def setalianzas(ctx):
+    if ctx.author.id not in USERS_ALLOWED:
+        return await ctx.send("⛔ No tienes permiso.", delete_after=5)
+
+    await ctx.send("📌 Abriendo formulario…", delete_after=5)
+    await ctx.send_modal(ModalAlianza())
 
 
 @bot.command()
-async def setalianzas(ctx, alianza=None):
+async def editalianzas(ctx, *, familia=None):
     if ctx.author.id not in USERS_ALLOWED:
-        return await ctx.send("⛔ No tienes permiso.", delete_after=8)
+        return await ctx.send("⛔ No tienes permiso.", delete_after=5)
 
-    validas = ["porros", "armas", "lavado dinero", "desguace", "balas", "meta", "tarjetas"]
-    if not alianza or alianza.lower() not in validas:
-        return await ctx.send("⚠️ Uso correcto: `!setalianzas <alianza>`", delete_after=12)
+    if not familia:
+        return await ctx.send("⚠ Uso correcto: `!editalianzas <familia>`", delete_after=7)
 
-    alianza = alianza.lower()
-
-    class Button(discord.ui.View):
-        @discord.ui.button(label="📋 Abrir formulario", style=discord.ButtonStyle.green)
-        async def open(self, interaction, button):
-            await interaction.response.send_modal(ModalAlianza(alianza))
-
-    await ctx.send(f"📝 Configurar **{alianza}**:", view=Button(), delete_after=30)
-
-
-@bot.command()
-async def editalianzas(ctx, alianza=None):
-    if ctx.author.id not in USERS_ALLOWED:
-        return await ctx.send("⛔ No tienes permiso.", delete_after=10)
-
-    if not alianza:
-        return await ctx.send("⚠️ Uso correcto: `!editalianzas <alianza>`", delete_after=10)
-
-    data = cargar_alianza(alianza.lower())
+    data = cargar_alianza(familia)
     if not data:
-        return await ctx.send(f"❌ La alianza **{alianza}** no está registrada.", delete_after=10)
+        return await ctx.send("❌ Esa familia no existe.", delete_after=6)
 
-    class Button(discord.ui.View):
-        @discord.ui.button(label="✏️ Editar", style=discord.ButtonStyle.blurple)
-        async def abrir(self, interaction, button):
-            await interaction.response.send_modal(EditModal(alianza.lower(), data))
-
-    await ctx.send(f"🔧 Editar alianza **{alianza.lower()}**:", view=Button(), delete_after=30)
+    await ctx.send_modal(ModalEdit(familia, data))
 
 
 @bot.command()
-async def deletealianzas(ctx, alianza=None):
+async def deletealianzas(ctx, *, familia=None):
     if ctx.author.id not in USERS_ALLOWED:
-        return await ctx.send("⛔ No tienes permiso.", delete_after=8)
+        return await ctx.send("⛔ No tienes permiso.", delete_after=5)
 
-    if not alianza:
-        return await ctx.send("⚠️ Uso correcto: `!deletealianzas <alianza>`", delete_after=12)
+    if not familia:
+        return await ctx.send("⚠ Uso correcto: `!deletealianzas <familia>`", delete_after=7)
 
-    if not cargar_alianza(alianza.lower()):
-        return await ctx.send(f"❌ La alianza **{alianza}** no existe.", delete_after=10)
+    borrar_alianza(familia)
+    await ctx.send(f"🗑 Alianza **{familia}** eliminada.", delete_after=6)
+    await publicar_mensaje_permanente()
 
-    borrar_alianza(alianza.lower())
-    await ctx.send(f"🗑️ Alianza **{alianza.lower()}** eliminada.", delete_after=10)
+
+# ▬▬▬▬▬▬ STARTUP ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+@bot.event
+async def on_ready():
+    print(f"🤖 Bot conectado como {bot.user}")
+    await asyncio.sleep(5)
+    await publicar_mensaje_permanente()
 
 
 @bot.command()
