@@ -5,12 +5,12 @@ import asyncio
 from discord.ui import View, Modal, TextInput, Select
 import sqlite3
 
-class ModalNuevaAlianza(discord.ui.Modal, title="➕ Añadir nueva alianza"):
-    familia = TextInput(label="Familia", placeholder="Ej: Los Corleone")
-    numero = TextInput(label="Número identificador", placeholder="Ej: 12")
-    foto = TextInput(label="URL de la foto", placeholder="https://...")
-    compra = TextInput(label="Descuento de compra (%)", placeholder="Ej: 10")
-    venta = TextInput(label="Descuento de venta (%)", placeholder="Ej: 15")
+class ModalNuevaAlianza(discord.ui.Modal, title="➕ AÑADIR NUEVA ALIANZA"):
+    familia = TextInput(label="🔮Familia + Material venta", placeholder="Ej: Los Corleone")
+    numero = TextInput(label="🔢Número identificador", placeholder="Ej: 12")
+    foto = TextInput(label="📎URL de la foto", placeholder="https://...")
+    compra = TextInput(label="🔰Descuento de compra (%)", placeholder="Ej: 10")
+    venta = TextInput(label="🔰Descuento de venta (%)", placeholder="Ej: 15")
 
     async def on_submit(self, interaction: discord.Interaction):
         guardar_nueva(self.familia.value, self.numero.value, self.foto.value, self.compra.value, self.venta.value)
@@ -22,11 +22,11 @@ class ModalEditarAlianza(discord.ui.Modal, title="📝 Editar alianza"):
         super().__init__()
         self.id_fam = id_fam
 
-        self.familia = TextInput(label="Familia", default=datos["familia"])
-        self.numero = TextInput(label="Número", default=datos["numero"])
-        self.foto = TextInput(label="URL de foto", default=datos["foto"])
-        self.compra = TextInput(label="Compra %", default=datos["compra"])
-        self.venta = TextInput(label="Venta %", default=datos["venta"])
+        self.familia = TextInput(label="🔮Familia + Material venta", default=datos["familia"])
+        self.numero = TextInput(label="🔢Número identificador", default=datos["numero"])
+        self.foto = TextInput(label="📎URL de la foto", default=datos["foto"])
+        self.compra = TextInput(label="🔰Descuento de compra (%)", default=datos["compra"])
+        self.venta = TextInput(label="🔰Descuento de venta (%)", default=datos["venta"])
 
         self.add_item(self.familia)
         self.add_item(self.numero)
