@@ -170,35 +170,30 @@ class SelectAlianzas(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
-    info = obtener_info(int(self.values[0]))
-    if not info:
-        return await interaction.response.send_message(
-            "⚠ Esta familia ya no existe.", ephemeral=True
+        info = obtener_info(int(self.values[0]))
+        if not info:
+            return await interaction.response.send_message(
+                "⚠ Esta familia ya no existe.", ephemeral=True
+            )
+
+        embed = discord.Embed(
+            title=f"📌 Alianza con {info['familia']}",
+            color=discord.Color.blue()
         )
+        embed.add_field(name="Número", value=info["numero"], inline=True)
+        embed.add_field(name="Compra %", value=info["compra"], inline=True)
+        embed.add_field(name="Venta %", value=info["venta"], inline=True)
+        embed.set_image(url=info["foto"])
+        embed.set_footer(text="Sistema de alianzas")
 
-    embed = discord.Embed(
-        title=f"📌 Alianza con {info['familia']}",
-        color=discord.Color.blue()
-    )
-    embed.add_field(name="Número", value=info["numero"], inline=True)
-    embed.add_field(name="Compra %", value=info["compra"], inline=True)
-    embed.add_field(name="Venta %", value=info["venta"], inline=True)
-    embed.set_image(url=info["foto"])
-    embed.set_footer(text="Sistema de alianzas")
+        await interaction.response.send_message(embed=embed)
+        msg = await interaction.original_response()
 
-    # enviamos el mensaje
-    await interaction.response.send_message(embed=embed)
-
-    # recuperamos el mensaje enviado
-    msg = await interaction.original_response()
-
-    # eliminación automática tras 8s
-    await asyncio.sleep(30)
-    try:
-        await msg.delete()
-    except:
-        pass
-
+        await asyncio.sleep(30)
+        try:
+            await msg.delete()
+        except:
+            pass
 
 class ViewAlianzas(discord.ui.View):
     def __init__(self):
