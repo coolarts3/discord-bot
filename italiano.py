@@ -599,8 +599,32 @@ async def verificar(ctx):
 @bot.event
 async def on_ready():
     print(f"🤖 Bot conectado como {bot.user}")
+
+    # esperamos 5s para asegurarnos de que Discord cargó todos los canales
     await asyncio.sleep(5)
-    await publicar_mensaje_permanente()
+
+    # 🔐 VERIFICACIÓN
+    try:
+        await publicar_mensaje_permanente()
+        print("🔄 Verificación restaurada")
+    except Exception as e:
+        print(f"⚠ Error al restaurar verificación: {e}")
+
+    # 🤝 ALIANZAS
+    try:
+        await publicar_menu()
+        print("🔄 Alianzas restauradas")
+    except Exception as e:
+        print(f"⚠ Error al restaurar alianzas: {e}")
+
+    # 💰 PRECIOS
+    try:
+        await publicar_menu_precios()
+        print("🔄 Precios restaurados")
+    except Exception as e:
+        print(f"⚠ Error al restaurar precios: {e}")
+
+    print("✔ Todos los sistemas han sido restaurados correctamente")
 
 # ───── Startup ─────────────────────────────────────────────
 
