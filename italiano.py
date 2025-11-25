@@ -46,6 +46,11 @@ class ModalEditarAlianza(discord.ui.Modal, title="📝 Editar alianza"):
         await interaction.response.send_message("✔ **Alianza actualizada correctamente.**", ephemeral=True)
         await publicar_menu()
 
+class ViewAbrirModalAlianza(discord.ui.View):
+    @discord.ui.button(label="➕ Crear nueva alianza", style=discord.ButtonStyle.green)
+    async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ModalNuevaAlianza())
+        
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -211,8 +216,7 @@ async def setalianzas(ctx):
     if ctx.author.id not in USERS_ALLOWED:
         return await ctx.send("⛔ No tienes permiso.", delete_after=8)
 
-    await ctx.send("📌 Abriendo formulario de nueva alianza...", delete_after=5)
-    await ctx.send_modal(ModalNuevaAlianza())
+    await ctx.send("📄 Haz clic en el botón para crear una alianza:", view=ViewAbrirModalAlianza(), delete_after=60)
 
 
 # --------------- COMANDO PARA BORRAR ---------------
