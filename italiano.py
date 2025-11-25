@@ -640,9 +640,7 @@ async def on_ready():
 
 # ───── Startup ─────────────────────────────────────────────
 
-@bot.event
-async def on_ready():
-    print(f"🤖 Bot conectado como {bot.user}")
+
 
 
 bot.run(os.getenv("DISCORD_TOKEN2"))
