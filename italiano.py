@@ -499,6 +499,20 @@ async def preciosarm(ctx):
     await publicar_menu_precios()
     await ctx.message.delete()
 
+@bot.event
+async def on_message(message):
+    # ignorar mensajes del propio bot
+    if message.author == bot.user:
+        return
+
+    # si el mensaje empieza por "!"
+    if message.content.startswith("!"):
+        # borrar después de 10 segundos
+        await message.delete(delay=10)
+
+    # NECESARIO para que sigan funcionando los comandos
+    await bot.process_commands(message)
+
 
 # ───── Startup ─────────────────────────────────────────────
 
