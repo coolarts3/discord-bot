@@ -4,6 +4,8 @@ import os
 import asyncio
 from discord.ui import View, Modal, TextInput, Select
 import sqlite3
+from datetime import datetime, timedelta
+import random
 
 class ModalNuevaAlianza(discord.ui.Modal, title="➕ AÑADIR NUEVA ALIANZA"):
     familia = TextInput(label="🔮Familia + Material venta", placeholder="Ej: Los Corleone")
