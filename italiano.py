@@ -779,9 +779,6 @@ async def finalizar(ctx, message_id: int):
 LOG_CHANNEL = 1444293463670788206        # canal donde se envía lo que escribe el usuario
 VERIFY_CHANNEL = 1417317069124272250     # canal donde habla el otro bot
 
-intents = discord.Intents.all()
-bot = commands.Bot(command_prefix="!", intents=intents)
-
 # ===== Normalizador para evitar errores por acentos, espacios y mayúsculas =====
 def normalize(text: str):
     text = text.strip().lower()
