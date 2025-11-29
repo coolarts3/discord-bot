@@ -757,24 +757,23 @@ async def finalizar(ctx, message_id: int):
     except:
         return await ctx.reply("❌ No se pudo encontrar ese mensaje.")
 
-        reaction = discord.utils.get(mensaje.reactions, emoji=EMOJI)
-        if not reaction:
-            return await ctx.reply("❌ El mensaje no tiene reacciones del sorteo.")
+    reaction = discord.utils.get(mensaje.reactions, emoji=EMOJI)
+    if not reaction:
+        return await ctx.reply("❌ El mensaje no tiene reacciones del sorteo.")
 
-        usuarios = [u async for u in reaction.users()]
-        participantes = [u for u in usuarios if not u.bot]
+    usuarios = [u async for u in reaction.users()]
+    participantes = [u for u in usuarios if not u.bot]
 
-        if not participantes:
-            return await ctx.reply("❌ Nadie participó en el sorteo.")
+    if not participantes:
+        return await ctx.reply("❌ Nadie participó en el sorteo.")
 
-        ganador = random.choice(participantes)
-        await ctx.send(
-            f"🏆 **¡TENEMOS GANADOR DEL SORTEO!** 🏆\n\n"
-            f"🎉 Felicidades <@{ganador.id}>!\n"
-            f"📦 Premio obtenido del sorteo.\n"
-            f"🪄 ID del sorteo: `{message_id}`"
-        )
-
+    ganador = random.choice(participantes)
+    await ctx.send(
+        f"🏆 **¡TENEMOS GANADOR DEL SORTEO!** 🏆\n\n"
+        f"🎉 Felicidades <@{ganador.id}>!\n"
+        f"📦 Premio obtenido del sorteo.\n"
+        f"🪄 ID del sorteo: `{message_id}`"
+    )
 
 
 @bot.command(name="sorteo")
