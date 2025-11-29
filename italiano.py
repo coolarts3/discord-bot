@@ -728,15 +728,30 @@ class SorteoModal(discord.ui.Modal, title="Crear Sorteo"):
         hora_entrega = self.hora.value
 
         # Convertir fecha
-        try:
-            fecha = datetime.strptime(hora_entrega, "%d/%m %H:%M")
-            ahora = datetime.now()
-            delta = (fecha - ahora).total_seconds()
-            if delta <= 0:
-                return await interaction.response.send_message("❌ La hora ya pasó", ephemeral=True)
-        except:
-            return await interaction.response.send_message("❌ Formato incorrecto (usa DD/MM HH:MM)", ephemeral=True)
+    match = re.match(r"^(\d{1,2})/(\d{1,2}) (\d{2}):(\d{2})$", hora_entrega)
+    if not match:
+        return await interaction.response.send_message(
+            "❌ Formato incorrecto. Usa **DD/MM HH:MM** (ej: 1/12 21:30)",
+            ephemeral=True
+     )
 
+dia, mes, hora, minuto = map(int, match.groups())
+
+# Crear fecha con año actual
+ahora = datetime.now()
+fecha = datetime(
+    year=ahora.year,
+    month=mes,
+    day=dia,
+    hour=hora,
+    minute=minuto
+)
+
+# Si la fecha ya pasó hoy → se asume el año siguiente
+if fecha <= ahora:
+    fecha = fecha.replace(year=fecha.year + 1)
+
+delta = (fecha - ahora).total_seconds()
         msg = await interaction.response.send_message(
             f"🎉 **¡SORTEO ABIERTO!** 🎉\n\n"
             f"📦 **Premio:** *{premio}*\n"
