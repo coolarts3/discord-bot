@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 import random
 import re
 
+EMOJI = "🎉"   # ← DEBE ESTAR AQUÍ
+
 class ModalNuevaAlianza(discord.ui.Modal, title="➕ AÑADIR NUEVA ALIANZA"):
     familia = TextInput(label="🔮Familia + Material venta", placeholder="Ej: Los Corleone")
     numero = TextInput(label="🔢Número identificador", placeholder="Ej: 12")
