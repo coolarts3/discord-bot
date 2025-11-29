@@ -731,21 +731,34 @@ class SorteoModal(discord.ui.Modal, title="Crear Sorteo"):
 
         hora_entrega = self.hora.value
 
-        # Aceptar formato 1/12 22:00 o 01/12 22:00
+        # Analizar la fecha escrita (1/12 22:00 o 01/12 22:00)
+        import re
         match = re.match(r"^(\d{1,2})/(\d{1,2}) (\d{2}):(\d{2})$", hora_entrega)
         if not match:
             return await interaction.response.send_message(
-                "❌ Formato incorrecto. Usa **DD/MM HH:MM** (ej: 1/12 21:30)",
+                "❌ Usa el formato **DD/MM HH:MM** (ej: 1/12 21:30)",
                 ephemeral=True
             )
 
         dia, mes, hora, minuto = map(int, match.groups())
-        ahora = datetime.now()
-        fecha = datetime(year=ahora.year, month=mes, day=dia, hour=hora, minute=minuto)
 
-        # Evita error de segundos pendientes
-        if fecha.timestamp() <= ahora.replace(second=0, microsecond=0).timestamp():
+        from datetime import datetime
+
+        ahora = datetime.now().replace(second=0, microsecond=0)
+        fecha = datetime(
+            year=ahora.year,
+            month=mes,
+            day=dia,
+            hour=hora,
+            minute=minuto
+        )
+
+        # 👉 Si la hora coincide pero ya pasaron segundos, NO marca como pasada
+        if fecha < ahora:
             fecha = fecha.replace(year=fecha.year + 1)
+
+        delta = (fecha - ahora).total_seconds()
+ce(year=fecha.year + 1)
 
         delta = (fecha - ahora).total_seconds()
 
