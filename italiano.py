@@ -724,8 +724,10 @@ class SorteoModal(discord.ui.Modal, title="Crear Sorteo"):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        hora_entrega = self.hora.value.strip().replace(" ", " ").replace("  ", " ")
+        # Limpieza de caracteres invisibles y espacios dobles
+        hora_entrega = self.hora.value.strip().replace("  ", " ")
 
+        # Aceptar formato 1/12 22:00 o 01/12 22:00
         match = re.match(r"^(\d{1,2})/(\d{1,2}) (\d{2}):(\d{2})$", hora_entrega)
         if not match:
             return await interaction.response.send_message(
@@ -735,14 +737,17 @@ class SorteoModal(discord.ui.Modal, title="Crear Sorteo"):
 
         dia, mes, hora, minuto = map(int, match.groups())
 
+        # Ajuste de hora real
         ahora = datetime.now().replace(second=0, microsecond=0)
         fecha = datetime(year=ahora.year, month=mes, day=dia, hour=hora, minute=minuto)
 
+        # Si coincide la hora pero han pasado segundos, NO marcar como pasada
         if fecha < ahora:
             fecha = fecha.replace(year=fecha.year + 1)
 
         delta = (fecha - ahora).total_seconds()
 
+        # Publicar sorteo
         msg = await interaction.response.send_message(
             f"🎉 **¡SORTEO ABIERTO!** 🎉\n\n"
             f"📦 **Premio:** *{self.premio.value}*\n"
@@ -783,13 +788,16 @@ class BotonSorteo(discord.ui.View):
         await interaction.response.send_modal(SorteoModal())
 
 
-# -------- COMANDO CON PREFIJO -------- #
 @bot.command(name="sorteo2")
 async def sorteo(ctx):
     await ctx.reply(
         "🧾 Pulsa el botón para crear un sorteo:",
         view=BotonSorteo()
     )
+
+
+
+# -------- COMANDO CON PREFIJO -------- #
 
 
 # -------- COMANDO CON PREFIJO -------- #
