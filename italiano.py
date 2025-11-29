@@ -774,7 +774,7 @@ class BotonSorteo(discord.ui.View):
         await interaction.response.send_modal(SorteoModal())
 
 # -------- COMANDO CON PREFIJO -------- #
-@bot.command()
+@bot.command(name="sorteo2")
 async def sorteo(ctx):
     await ctx.reply(
         "🧾 Pulsa el botón para crear un sorteo:",
