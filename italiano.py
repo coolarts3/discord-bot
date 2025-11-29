@@ -714,7 +714,7 @@ class SorteoModal(discord.ui.Modal, title="Crear Sorteo"):
     premio = discord.ui.TextInput(label="Premio", required=True)
     hora = discord.ui.TextInput(
         label="Hora de entrega (DD/MM HH:MM)",
-        placeholder="Ej: 30/11 22:00",
+        placeholder="Ej: 1/12 21:30",
         required=True
     )
     metodo = discord.ui.TextInput(
@@ -724,61 +724,67 @@ class SorteoModal(discord.ui.Modal, title="Crear Sorteo"):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        premio = self.premio.value
+        import re
+        from datetime import datetime
+        import asyncio
+        import random
+
         hora_entrega = self.hora.value
 
-        # Convertir fecha
-hora_entrega = self.hora.value
+        # Aceptar formato 1/12 22:00 o 01/12 22:00
+        match = re.match(r"^(\d{1,2})/(\d{1,2}) (\d{2}):(\d{2})$", hora_entrega)
+        if not match:
+            return await interaction.response.send_message(
+                "❌ Formato incorrecto. Usa **DD/MM HH:MM** (ej: 1/12 21:30)",
+                ephemeral=True
+            )
 
-# Aceptar formato 1/12 22:00 o 01/12 22:00
-match = re.match(r"^(\d{1,2})/(\d{1,2}) (\d{2}):(\d{2})$", hora_entrega)
-if not match:
-    return await interaction.response.send_message(
-        "❌ Formato incorrecto. Usa **DD/MM HH:MM** (ej: 1/12 21:30)",
-        ephemeral=True
-    )
+        dia, mes, hora, minuto = map(int, match.groups())
 
-dia, mes, hora, minuto = map(int, match.groups())
+        ahora = datetime.now()
+        fecha = datetime(year=ahora.year, month=mes, day=dia, hour=hora, minute=minuto)
 
-ahora = datetime.now()
-fecha = datetime(year=ahora.year, month=mes, day=dia, hour=hora, minute=minuto)
+        # Si la hora ya pasó hoy → se asume el año siguiente
+        if fecha <= ahora:
+            fecha = fecha.replace(year=fecha.year + 1)
 
-# Si la hora ya pasó hoy, se asume que es para el próximo año
-if fecha <= ahora:
-    fecha = fecha.replace(year=fecha.year + 1)
+        delta = (fecha - ahora).total_seconds()
 
-delta = (fecha - ahora).total_seconds()
+        # Publicar sorteo
         msg = await interaction.response.send_message(
             f"🎉 **¡SORTEO ABIERTO!** 🎉\n\n"
-            f"📦 **Premio:** *{premio}*\n"
+            f"📦 **Premio:** *{self.premio.value}*\n"
             f"⏰ **Entrega:** *{hora_entrega}*\n"
-            f"🟢 **Para participar reacciona con {EMOJI}**\n\n"
+            f"🟢 **Para participar reacciona con 🎉**\n\n"
             f"El ganador será elegido automáticamente al finalizar el tiempo.",
             fetchReply=True
         )
-        message = await interaction.original_response()
-        await message.add_reaction(EMOJI)
 
-        # Esperar hasta fecha final
+        message = await interaction.original_response()
+        await message.add_reaction("🎉")
+
+        # Esperar hasta la fecha indicada
         await asyncio.sleep(delta)
 
-        # Cargar reacciones actualizadas
+        # Obtener participantes
         message = await message.channel.fetch_message(message.id)
-        reaction = discord.utils.get(message.reactions, emoji=EMOJI)
+        reaction = discord.utils.get(message.reactions, emoji="🎉")
 
         if not reaction:
             return await message.reply("❌ No hubo participantes.")
+
         users = await reaction.users().flatten()
         participantes = [u for u in users if not u.bot]
 
-        if not participantes:
+        if len(participantes) == 0:
             return await message.reply("❌ Nadie participó en el sorteo.")
 
         ganador = random.choice(participantes)
+
         await message.reply(
             f"🏆 **¡TENEMOS GANADOR!** 🏆\n\n"
             f"🎉 Felicidades <@{ganador.id}>!\n"
-            f"📦 Premio: **{premio}**"
+            f"📦 Premio: **{self.premio.value}**"
         )
 
 # -------- BOTÓN PARA ABRIR MODAL -------- #
