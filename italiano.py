@@ -739,7 +739,6 @@ class SorteoModal(discord.ui.Modal, title="Crear Sorteo"):
             f"📦 **Premio:** {self.premio.value}\n"
             f"⏰ **Entrega:** {texto_hora}\n"
             f"🟢 **Para participar reacciona con 🎉**\n\n"
-            f"Usa `!finalizar ID_DEL_MENSAJE` cuando desees elegir al ganador."
         )
 
         mensaje = await interaction.original_response()
@@ -758,24 +757,23 @@ async def finalizar(ctx, message_id: int):
     except:
         return await ctx.reply("❌ No se pudo encontrar ese mensaje.")
 
-    reaction = discord.utils.get(mensaje.reactions, emoji=EMOJI)
-    if not reaction:
-        return await ctx.reply("❌ El mensaje no tiene reacciones del sorteo.")
+        reaction = discord.utils.get(mensaje.reactions, emoji=EMOJI)
+        if not reaction:
+            return await ctx.reply("❌ El mensaje no tiene reacciones del sorteo.")
 
-    usuarios = await reaction.users().flatten()
-    participantes = [u for u in usuarios if not u.bot]
+        usuarios = [u async for u in reaction.users()]
+        participantes = [u for u in usuarios if not u.bot]
 
-    if not participantes:
-        return await ctx.reply("❌ Nadie participó en el sorteo.")
+        if not participantes:
+            return await ctx.reply("❌ Nadie participó en el sorteo.")
 
-    ganador = random.choice(participantes)
-
-    await ctx.send(
-        f"🏆 **¡TENEMOS GANADOR DEL SORTEO!** 🏆\n\n"
-        f"🎉 Felicidades <@{ganador.id}>!\n"
-        f"📦 Premio obtenido del sorteo.\n"
-        f"🪄 ID del sorteo: `{message_id}`"
-    )
+        ganador = random.choice(participantes)
+        await ctx.send(
+            f"🏆 **¡TENEMOS GANADOR DEL SORTEO!** 🏆\n\n"
+            f"🎉 Felicidades <@{ganador.id}>!\n"
+            f"📦 Premio obtenido del sorteo.\n"
+            f"🪄 ID del sorteo: `{message_id}`"
+        )
 
 
 
