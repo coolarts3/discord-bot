@@ -775,6 +775,102 @@ async def finalizar(ctx, message_id: int):
         f"🪄 ID del sorteo: `{message_id}`"
     )
 
+# Pon los IDs de los canales aquí
+LOG_CHANNEL = 1444293463670788206        # canal donde se envía lo que escribe el usuario
+VERIFY_CHANNEL = 1417317069124272250     # canal donde habla el otro bot
+
+intents = discord.Intents.all()
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# ===== Normalizador para evitar errores por acentos, espacios y mayúsculas =====
+def normalize(text: str):
+    text = text.strip().lower()
+    text = ''.join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
+    return text
+
+# ================= MODAL ==================
+class RetiroModal(discord.ui.Modal, title="Verificar Retiro"):
+    pasaporte = discord.ui.TextInput(label="Pasaporte", required=True)
+    item = discord.ui.TextInput(label="Ítem retirado", required=True)
+    fecha = discord.ui.TextInput(label="Fecha (DD/MM/AAAA)", required=True)
+    hora = discord.ui.TextInput(label="Hora (HH:MM)", required=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+
+        # Enviar información del usuario al canal de registros
+        log_channel = bot.get_channel(LOG_CHANNEL)
+        if log_channel:
+            await log_channel.send(
+                f"📌 Registro de Retiro:\n"
+                f"👤 Pasaporte: {self.pasaporte.value}\n"
+                f"📦 Ítem: {self.item.value}\n"
+                f"📅 Fecha: {self.fecha.value}\n"
+                f"⏰ Hora: {self.hora.value}"
+            )
+
+        await interaction.response.send_message("⏳ Verificando información, un momento...", ephemeral=True)
+
+        await asyncio.sleep(10)
+
+        canal_verificacion = bot.get_channel(VERIFY_CHANNEL)
+        if not canal_verificacion:
+            return await interaction.followup.send("❌ Canal de verificación no configurado.", ephemeral=True)
+
+        # Obtener el último mensaje del otro bot
+        async for mensaje in canal_verificacion.history(limit=1):
+            contenido = mensaje.content
+            break
+        else:
+            return await interaction.followup.send("❌ No hay mensajes para verificar.", ephemeral=True)
+
+        # Normalizar para comparar
+        usr_pasaporte = normalize(self.pasaporte.value)
+        usr_item = normalize(self.item.value)
+        usr_fecha = normalize(self.fecha.value)
+        usr_hora = normalize(self.hora.value)
+
+        texto = normalize(contenido)
+
+        # Verificar coincidencias
+        match_pasaporte = usr_pasaporte in texto
+        match_item = usr_item in texto
+        match_fecha = usr_fecha in texto
+        match_hora = usr_hora in texto
+
+        if match_pasaporte and match_item and match_fecha and match_hora:
+            resultado = "🟢 **VALIDADO** – Coinciden todos los datos."
+        else:
+            resultado = "🔴 **NO COINCIDE** – La información no coincide con el registro del otro bot."
+
+        await interaction.followup.send(resultado, ephemeral=True)
+
+
+# ================= BOTÓN PERSISTENTE ==================
+class BotonVerificar(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Verificar Retiro", style=discord.ButtonStyle.green)
+    async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(RetiroModal())
+
+
+# ================== CONFIGURACIÓN INICIAL ==================
+@bot.event
+async def on_ready():
+    print(f"Bot conectado como {bot.user}")
+    bot.add_view(BotonVerificar())  # mantiene el botón después de reiniciar
+
+
+# ================== MENSAJE CON EL BOTÓN ==================
+@bot.command()
+async def panel(ctx):
+    await ctx.send(
+        "📌 **Sistema de Validación de Retiro**\nPulsa el botón para iniciar la verificación:",
+        view=BotonVerificar()
+    )
+
+
 
 @bot.command(name="sorteo")
 async def sorteo(ctx):
