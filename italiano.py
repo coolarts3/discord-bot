@@ -754,13 +754,13 @@ class SorteoModal(discord.ui.Modal, title="Crear Sorteo"):
             f"🎉 **¡SORTEO ABIERTO!** 🎉\n\n"
             f"📦 **Premio:** *{self.premio.value}*\n"
             f"⏰ **Entrega:** *{hora_entrega}*\n"
-            f"🟢 **Para participar reacciona con {EMOJI}**\n\n"
+            f"🟢 **Para participar reacciona con 🎉**\n\n"
             f"El ganador será elegido automáticamente al finalizar el tiempo.",
             fetchReply=True
         )
 
         message = await interaction.original_response()
-        await message.add_reaction(EMOJI)
+        await message.add_reaction("🎉")
 
         # Esperar hasta la fecha indicada
         await asyncio.sleep(delta)
