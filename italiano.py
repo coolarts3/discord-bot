@@ -686,6 +686,9 @@ async def verificar(ctx):
 async def on_ready():
     print(f"🤖 Bot conectado como {bot.user}")
 
+    # mantener botón persistente del sistema de Retiro
+    bot.add_view(BotonVerificar())
+
     # esperamos 5s para asegurarnos de que Discord cargó todos los canales
     await asyncio.sleep(5)
 
@@ -854,14 +857,6 @@ class BotonVerificar(discord.ui.View):
     )
     async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(RetiroModal())
-
-
-
-# ================== CONFIGURACIÓN INICIAL ==================
-@bot.event
-async def on_ready():
-    print(f"Bot conectado como {bot.user}")
-    bot.add_view(BotonVerificar())  # mantiene el botón después de reiniciar
 
 
 # ================== MENSAJE CON EL BOTÓN ==================
