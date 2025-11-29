@@ -751,15 +751,6 @@ class BotonSorteo(discord.ui.View):
     async def crear(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(SorteoModal())
 
-
-@bot.command(name="sorteo")
-async def sorteo(ctx):
-    await ctx.reply(
-        "🧾 Pulsa el botón para crear un sorteo:",
-        view=BotonSorteo()
-    )
-
-
 @bot.command(name="finalizar")
 async def finalizar(ctx, message_id: int):
     try:
