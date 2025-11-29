@@ -728,12 +728,12 @@ class SorteoModal(discord.ui.Modal, title="Crear Sorteo"):
         hora_entrega = self.hora.value
 
         # Convertir fecha
-    match = re.match(r"^(\d{1,2})/(\d{1,2}) (\d{2}):(\d{2})$", hora_entrega)
-    if not match:
-        return await interaction.response.send_message(
-            "❌ Formato incorrecto. Usa **DD/MM HH:MM** (ej: 1/12 21:30)",
-            ephemeral=True
-     )
+match = re.match(r"^(\d{1,2})/(\d{1,2}) (\d{2}):(\d{2})$", hora_entrega)
+if not match:
+    return await interaction.response.send_message(
+        "❌ Formato incorrecto. Usa **DD/MM HH:MM** (ej: 1/12 21:30)",
+        ephemeral=True
+    )
 
 dia, mes, hora, minuto = map(int, match.groups())
 
@@ -747,6 +747,11 @@ fecha = datetime(
     minute=minuto
 )
 
+# Si la fecha ya pasó hoy → se asume el año siguiente
+if fecha <= ahora:
+    fecha = fecha.replace(year=fecha.year + 1)
+
+delta = (fecha - ahora).total_seconds()
 # Si la fecha ya pasó hoy → se asume el año siguiente
 if fecha <= ahora:
     fecha = fecha.replace(year=fecha.year + 1)
