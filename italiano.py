@@ -850,9 +850,14 @@ class BotonVerificar(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Verificar Retiro", style=discord.ButtonStyle.green)
+    @discord.ui.button(
+        label="Verificar Retiro",
+        style=discord.ButtonStyle.green,
+        custom_id="boton_verificar_retiro"
+    )
     async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(RetiroModal())
+
 
 
 # ================== CONFIGURACIÓN INICIAL ==================
