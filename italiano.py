@@ -7,79 +7,18 @@ import sqlite3
 from datetime import datetime, timedelta
 import random
 import re
+import unicodedata
 
-EMOJI = "🎉"   # ← DEBE ESTAR AQUÍ
+EMOJI = "🎉"
 
-class ModalNuevaAlianza(discord.ui.Modal, title="➕ AÑADIR NUEVA ALIANZA"):
-    familia = TextInput(label="🔮Familia + Material venta", placeholder="Ej: Los Corleone")
-    numero = TextInput(label="🔢Número identificador", placeholder="Ej: 12")
-    foto = TextInput(label="📎URL de la foto", placeholder="https://...")
-    compra = TextInput(label="🔰Descuento de compra (%)", placeholder="Ej: 10")
-    venta = TextInput(label="🔰Descuento de venta (%)", placeholder="Ej: 15")
-
-    async def on_submit(self, interaction: discord.Interaction):
-        guardar_nueva(self.familia.value, self.numero.value, self.foto.value, self.compra.value, self.venta.value)
-        await interaction.response.send_message("✔ **Alianza añadida correctamente.**", ephemeral=True)
-        await publicar_menu()
-
-class ModalEditarAlianza(discord.ui.Modal, title="📝 Editar alianza"):
-    def __init__(self, id_fam, datos):
-        super().__init__()
-        self.id_fam = id_fam
-
-        self.familia = TextInput(label="🔮Familia + Material venta", default=datos["familia"])
-        self.numero = TextInput(label="🔢Número identificador", default=datos["numero"])
-        self.foto = TextInput(label="📎URL de la foto", default=datos["foto"])
-        self.compra = TextInput(label="🔰Descuento de compra (%)", default=datos["compra"])
-        self.venta = TextInput(label="🔰Descuento de venta (%)", default=datos["venta"])
-
-        self.add_item(self.familia)
-        self.add_item(self.numero)
-        self.add_item(self.foto)
-        self.add_item(self.compra)
-        self.add_item(self.venta)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        actualizar_alianza(
-            self.id_fam,
-            self.familia.value,
-            self.numero.value,
-            self.foto.value,
-            self.compra.value,
-            self.venta.value
-        )
-        await interaction.response.send_message("✔ **Alianza actualizada correctamente.**", ephemeral=True)
-        await publicar_menu()
-
-class ViewAbrirModalAlianza(discord.ui.View):
-    @discord.ui.button(label="➕ Crear nueva alianza", style=discord.ButtonStyle.green)
-    async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(ModalNuevaAlianza())
-
-class ViewEditarAlianza(discord.ui.View):
-    def __init__(self, id_fam, datos):
-        super().__init__()
-        self.id_fam = id_fam
-        self.datos = datos
-
-    @discord.ui.button(label="✏ Editar esta alianza", style=discord.ButtonStyle.blurple)
-    async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(ModalEditarAlianza(self.id_fam, self.datos))
-        
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
+intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-
-# ▬▬▬▬▬▬ CONFIG ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-CANAL_ALIANZAS = 1442618930291281960  # ID del canal permanente
-USERS_ALLOWED = [352471626400661514, 352471626400661514]  # IDs con permiso
-DB = "/storage/alianzas.db"
-# ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-
-# ▬▬▬▬▬▬ BASE DE DATOS ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-import os
+# ─────────────────────────────────────────────
+# SISTEMA DE ALIANZAS
+# ─────────────────────────────────────────────
+CANAL_ALIANZAS = 1442618930291281960
+USERS_ALLOWED = [352471626400661514, 352471626400661514]
 
 DB_FOLDER = "/storage"
 DB = f"{DB_FOLDER}/alianzas.db"
@@ -100,7 +39,6 @@ CREATE TABLE IF NOT EXISTS alianzas (
 conn.commit()
 conn.close()
 
-
 def obtener_alianzas():
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
@@ -108,7 +46,6 @@ def obtener_alianzas():
     data = cursor.fetchall()
     conn.close()
     return data
-
 
 def obtener_info(id_familia):
     conn = sqlite3.connect(DB)
@@ -127,7 +64,6 @@ def obtener_info(id_familia):
         "venta": row[5],
     }
 
-
 def guardar_nueva(familia, numero, foto, compra, venta):
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
@@ -138,7 +74,6 @@ def guardar_nueva(familia, numero, foto, compra, venta):
     conn.commit()
     conn.close()
 
-
 def actualizar_alianza(id_fam, familia, numero, foto, compra, venta):
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
@@ -148,7 +83,6 @@ def actualizar_alianza(id_fam, familia, numero, foto, compra, venta):
     conn.commit()
     conn.close()
 
-
 def borrar_alianza(id_fam):
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
@@ -156,305 +90,146 @@ def borrar_alianza(id_fam):
     conn.commit()
     conn.close()
 
+class ModalNuevaAlianza(discord.ui.Modal, title="➕ AÑADIR NUEVA ALIANZA"):
+    familia = TextInput(label="🔮Familia + Material venta")
+    numero = TextInput(label="🔢Número identificador")
+    foto = TextInput(label="📎URL de la foto")
+    compra = TextInput(label="🔰Descuento de compra (%)")
+    venta = TextInput(label="🔰Descuento de venta (%)")
 
-# --------------- MENÚ DE SELECCIÓN ---------------
+    async def on_submit(self, interaction):
+        guardar_nueva(self.familia.value, self.numero.value, self.foto.value, self.compra.value, self.venta.value)
+        await interaction.response.send_message("✔ Alianza añadida.", ephemeral=True)
+        await publicar_menu()
+
+class ModalEditarAlianza(discord.ui.Modal, title="📝 Editar alianza"):
+    def __init__(self, id_fam, datos):
+        super().__init__()
+        self.id_fam = id_fam
+
+        self.familia = TextInput(label="🔮Familia + Material venta", default=datos["familia"])
+        self.numero = TextInput(label="🔢Número identificador", default=datos["numero"])
+        self.foto = TextInput(label="📎URL de la foto", default=datos["foto"])
+        self.compra = TextInput(label="🔰Descuento de compra (%)", default=datos["compra"])
+        self.venta = TextInput(label="🔰Descuento de venta (%)", default=datos["venta"])
+
+        for i in (self.familia, self.numero, self.foto, self.compra, self.venta):
+            self.add_item(i)
+
+    async def on_submit(self, interaction):
+        actualizar_alianza(self.id_fam, self.familia.value, self.numero.value, self.foto.value, self.compra.value, self.venta.value)
+        await interaction.response.send_message("✔ Alianza actualizada.", ephemeral=True)
+        await publicar_menu()
+
+class ViewAbrirModalAlianza(discord.ui.View):
+    @discord.ui.button(label="➕ Crear nueva alianza", style=discord.ButtonStyle.green)
+    async def abrir(self, interaction, button):
+        await interaction.response.send_modal(ModalNuevaAlianza())
+
+class ViewEditarAlianza(discord.ui.View):
+    def __init__(self, id_fam, datos):
+        super().__init__()
+        self.id_fam = id_fam
+        self.datos = datos
+
+    @discord.ui.button(label="✏ Editar esta alianza", style=discord.ButtonStyle.blurple)
+    async def abrir(self, interaction, _):
+        await interaction.response.send_modal(ModalEditarAlianza(self.id_fam, self.datos))
+
 class SelectAlianzas(discord.ui.Select):
     def __init__(self):
-        alianzas = obtener_alianzas()
-
         options = [
-            discord.SelectOption(label=f"{row[1]} (#{row[2]})", value=str(row[0]))
-            for row in alianzas
+            discord.SelectOption(label=f"{f} (#{n})", value=str(i))
+            for i, f, n in obtener_alianzas()
         ]
+        super().__init__(placeholder="Selecciona una familia", options=options)
 
-        super().__init__(
-            placeholder="Selecciona una familia",
-            options=options,
-            min_values=1,
-            max_values=1
-        )
-
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction):
         info = obtener_info(int(self.values[0]))
         if not info:
-            return await interaction.response.send_message(
-                "⚠ Esta familia ya no existe.", ephemeral=True
-            )
+            return await interaction.response.send_message("⚠ Ya no existe.", ephemeral=True)
 
         embed = discord.Embed(
             title=f"📌 Alianza con {info['familia']}",
             color=discord.Color.blue()
         )
-        embed.add_field(name="Número", value=info["numero"], inline=True)
-        embed.add_field(name="Compra %", value=info["compra"], inline=True)
-        embed.add_field(name="Venta %", value=info["venta"], inline=True)
+        embed.add_field(name="Número", value=info["numero"])
+        embed.add_field(name="Compra %", value=info["compra"])
+        embed.add_field(name="Venta %", value=info["venta"])
         embed.set_image(url=info["foto"])
-        embed.set_footer(text="Sistema de alianzas")
-
         await interaction.response.send_message(embed=embed)
         msg = await interaction.original_response()
 
         await asyncio.sleep(30)
-        try:
-            await msg.delete()
-        except:
-            pass
+        try: await msg.delete()
+        except: pass
 
 class ViewAlianzas(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
         self.add_item(SelectAlianzas())
 
-
-# --------------- PUBLICAR MENSAJE PERMANENTE ---------------
 async def publicar_menu():
     canal = bot.get_channel(CANAL_ALIANZAS)
-    if not canal:
-        print("⚠ Canal no encontrado")
-        return
+    if not canal: return
 
-    # borrar solo mensajes del bot
     async for msg in canal.history(limit=200):
         if msg.author == bot.user:
-            try:
-                await msg.delete()
-            except:
-                pass
+            try: await msg.delete()
+            except: pass
 
     alianzas = obtener_alianzas()
-
-    embed = discord.Embed(
-        title="🤝 LISTA DE ALIANZAS DISPONIBLES",
-        color=discord.Color.gold()
+    embed = discord.Embed(title="🤝 LISTA DE ALIANZAS DISPONIBLES", color=discord.Color.gold())
+    embed.description = (
+        "⚠ No hay alianzas registradas." if not alianzas else
+        "📌 Selecciona una familia en el menú de abajo."
     )
+    await canal.send(embed=embed, view=ViewAlianzas())
 
-    if not alianzas:
-        embed.description = "⚠ No hay alianzas registradas.\nUsa `!setalianzas` para añadir una."
-        await canal.send(embed=embed)
-    else:
-        embed.description = "📌 Selecciona una familia en el menú de abajo."
-        await canal.send(embed=embed, view=ViewAlianzas())
-
-    print("✔ Menú de alianzas actualizado")
-
-
-# --------------- COMANDO PARA AÑADIR ---------------
 @bot.command()
 async def setalianzas(ctx):
     if ctx.author.id not in USERS_ALLOWED:
         return await ctx.send("⛔ No tienes permiso.", delete_after=8)
+    await ctx.send("📄 Crea una alianza:", view=ViewAbrirModalAlianza(), delete_after=60)
 
-    await ctx.send("📄 Haz clic en el botón para crear una alianza:", view=ViewAbrirModalAlianza(), delete_after=60)
-
-
-# --------------- COMANDO PARA BORRAR ---------------
 @bot.command()
 async def deletealianza(ctx, id_fam=None):
     if ctx.author.id not in USERS_ALLOWED:
         return await ctx.send("⛔ No tienes permiso.", delete_after=8)
-
     if not id_fam or not id_fam.isdigit():
         return await ctx.send("Uso: `!deletealianza <ID>`", delete_after=8)
-
     borrar_alianza(int(id_fam))
     await ctx.send("🗑 Eliminada.", delete_after=6)
-
     await publicar_menu()
 
 @bot.command()
 async def editaralianzas(ctx, id_fam=None):
     if ctx.author.id not in USERS_ALLOWED:
         return await ctx.send("⛔ No tienes permiso.", delete_after=8)
-
     if not id_fam or not id_fam.isdigit():
         return await ctx.send("Uso: `!editaralianzas <ID>`", delete_after=8)
 
     datos = obtener_info(int(id_fam))
     if not datos:
-        return await ctx.send("❌ No existe una alianza con ese ID.", delete_after=8)
+        return await ctx.send("❌ No existe esa alianza.", delete_after=8)
 
     await ctx.send(
-        content=f"📌 Estás editando la alianza **{datos['familia']}**.\nPulsa el botón para abrir el formulario:",
+        f"Editando **{datos['familia']}** — pulsa el botón:",
         view=ViewEditarAlianza(int(id_fam), datos),
         delete_after=60
     )
 
-
-@bot.command()
-async def hola(ctx):
-    await ctx.send("👋 Hola, soy el segundo bot.", delete_after=10)
-
-@bot.command()
-async def aviso(ctx, *, mensaje=None):
-    if not mensaje:
-        return await ctx.send("❌ Uso correcto: `!aviso <mensaje>`", delete_after=8)
-
-    # Imagen de cabecera del aviso
-    banner = "https://i.imgur.com/SYlRwEf.png"  # Puedes cambiarla por otra
-
-    embed = discord.Embed(
-        title="⚠️ AVISO IMPORTANTE",
-        description=f"📢 **{mensaje}**",
-        color=discord.Color.red()
-    )
-    embed.set_image(url=banner)
-    embed.set_footer(text=f"Anuncio realizado por {ctx.author}", icon_url=ctx.author.avatar)
-    embed.timestamp = discord.utils.utcnow()
-
-    aviso = await ctx.send(content="🔔 @everyone", embed=embed)
-    await ctx.message.delete()
-
-    # borrar automáticamente después de 10 minutos
-    await asyncio.sleep(600)
-    await aviso.delete()
-
-# ⬇️ IDs de usuarios que pueden crear planes
-USERS_ALLOWED_PLAN = [352471626400661514, 682643114560848012]
-
-# ⬇️ Canal donde funciona exclusivamente el comando !plan
-CANAL_PLANES = 1415492411022512213  # ⬅️ CAMBIA ESTE NÚMERO POR LA ID DEL CANAL
-
-# ⬇️ Emoji para apuntarse al atraco
-EMOJI_PARTICIPAR = "🔫"
-
-# ⚙️ Memoria de planes activos
-planes_activos = {}  # message_id : {"msg": msg, "usuarios": set(), "embed": embed}
-
-
-# 📌 Modal para crear un plan
-class ModalPlan(discord.ui.Modal, title="📋 Crear Plan de Atraco"):
-    def __init__(self):
-        super().__init__()
-
-        self.lugar = TextInput(label="📍 Lugar del atraco", placeholder="Ej: Banco Central")
-        self.hora = TextInput(label="⏳ Hora del golpe", placeholder="Ej: 22:30")
-        self.objetivo = TextInput(label="🎯 Dinero", placeholder="Ej: Cámara de seguridadp")
-        self.participantes = TextInput(label="👥 Participantes previstos", placeholder="Ej: 5")
-        
-        # campo combinado: palabra clave + detalles
-        self.detalles = TextInput(
-            label="🧠 Detalles extra",
-            placeholder="Información y notas del atraco...",
-            style=discord.TextStyle.paragraph,
-            required=False
-        )
-
-        # máximo 5 → ahora está correcto
-        self.add_item(self.lugar)
-        self.add_item(self.hora)
-        self.add_item(self.objetivo)
-        self.add_item(self.participantes)
-        self.add_item(self.detalles)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="🔥 PLAN DE ATRACO EN MARCHA 🔥",
-            color=discord.Color.red()
-        )
-        embed.add_field(name="📍 Lugar", value=self.lugar.value, inline=False)
-        embed.add_field(name="⏳ Hora", value=self.hora.value, inline=True)
-        embed.add_field(name="🎯 Dinero", value=self.objetivo.value, inline=True)
-        embed.add_field(name="👥 Participantes previstos", value=self.participantes.value, inline=True)
-        embed.add_field(name="🧠 Clave / Detalles del plan", value=self.detalles.value or "No especificado", inline=False)
-
-        embed.add_field(name="👥 Participantes confirmados", value="0", inline=False)
-        embed.set_footer(text=f"Plan creado por {interaction.user}", icon_url=interaction.user.avatar)
-        embed.timestamp = discord.utils.utcnow()
-
-        msg = await interaction.channel.send(embed=embed)
-        await msg.add_reaction("🔫")
-
-        planes_activos[msg.id] = {"msg": msg, "usuarios": set(), "embed": embed}
-
-        await interaction.response.send_message("📡 Plan enviado — los miembros pueden reaccionar para unirse.", ephemeral=True)
-
-        await asyncio.sleep(900)
-        try:
-            await msg.delete()
-        except:
-            pass
-        planes_activos.pop(msg.id, None)
-
-
-# 📌 Comando !plan
-@bot.command()
-async def plan(ctx):
-    # ❌ Bloquear si no es el canal correcto
-    if ctx.channel.id != CANAL_PLANES:
-        aviso = await ctx.reply(f"⛔ Este comando solo puede usarse en <#{CANAL_PLANES}>.")
-        await asyncio.sleep(5)
-        await aviso.delete()
-        await ctx.message.delete()
-        return
-
-    # ❌ Bloquear si no tiene permisos
-    if ctx.author.id not in USERS_ALLOWED_PLAN:
-        return await ctx.reply("⛔ No tienes permiso para planear atracos.", delete_after=7)
-
-    class ViewBotonPlan(discord.ui.View):
-        @discord.ui.button(label="📋 Crear plan de atraco", style=discord.ButtonStyle.red)
-        async def abrir_modal(self, interaction: discord.Interaction, button: discord.ui.Button):
-            await interaction.response.send_modal(ModalPlan())
-
-    await ctx.send("🕵️ Pulsa el botón para crear un plan de atraco:", view=ViewBotonPlan(), delete_after=60)
-
-
-# 📌 Reacción para unirse al plan
-@bot.event
-async def on_raw_reaction_add(payload):
-    if payload.message_id not in planes_activos:
-        return
-    if str(payload.emoji) != EMOJI_PARTICIPAR:
-        return
-    if payload.user_id == bot.user.id:
-        return
-
-    data = planes_activos[payload.message_id]
-    data["usuarios"].add(payload.user_id)
-
-    embed = data["embed"]
-    embed.set_field_at(
-        index=3,
-        name="👥 Participantes confirmados",
-        value=str(len(data["usuarios"])),
-        inline=False
-    )
-    await data["msg"].edit(embed=embed)
-
-
-# 📌 Al quitar la reacción, se resta el participante
-@bot.event
-async def on_raw_reaction_remove(payload):
-    if payload.message_id not in planes_activos:
-        return
-    if str(payload.emoji) != EMOJI_PARTICIPAR:
-        return
-
-    data = planes_activos[payload.message_id]
-    data["usuarios"].discard(payload.user_id)
-
-    embed = data["embed"]
-    embed.set_field_at(
-        index=3,
-        name="👥 Participantes confirmados",
-        value=str(len(data["usuarios"])),
-        inline=False
-    )
-    await data["msg"].edit(embed=embed)
-
-# ====== CONFIG ======
-CANAL_PRECIOS_ARM = 1442783256704712795  # ⬅️ ID del canal permitido
-USERS_ALLOWED_PRECIOS = [352471626400661514, 352471626400661514]  # ⬅️ IDs que tienen permiso
+# ─────────────────────────────────────────────
+# SISTEMA DE PRECIOS ARMAS
+# ─────────────────────────────────────────────
+CANAL_PRECIOS_ARM = 1442783256704712795
+USERS_ALLOWED_PRECIOS = [352471626400661514, 352471626400661514]
 
 IMG_0  = "https://i.imgur.com/BWLOxla.png"
 IMG_20 = "https://i.imgur.com/ediQEet.png"
 IMG_25 = "https://i.imgur.com/eXVpoQN.png"
 IMG_30 = "https://i.imgur.com/AAqnNcQ.png"
 
-ultimo_mensaje_precios = None  # se usará para restaurar el mensaje tras un reinicio
-
-
-# ====== SELECT ======
 class SelectPrecios(discord.ui.Select):
     def __init__(self):
         super().__init__(
@@ -467,337 +242,138 @@ class SelectPrecios(discord.ui.Select):
             ]
         )
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction):
         user = interaction.user
-
-        # Selección de imagen según la opción
-        match self.values[0]:
-            case "0% DESCUENTO": img = IMG_0
-            case "20% DESCUENTO": img = IMG_20
-            case "25% DESCUENTO": img = IMG_25
-            case "30% DESCUENTO": img = IMG_30
+        tabla = {
+            "0% DESCUENTO": IMG_0,
+            "20% DESCUENTO": IMG_20,
+            "25% DESCUENTO": IMG_25,
+            "30% DESCUENTO": IMG_30
+        }[self.values[0]]
 
         try:
             embed = discord.Embed(color=discord.Color.dark_red())
-            embed.set_image(url=img)
-            await user.send(f"🔫 **Tabla de precios {self.values[0]}**", embed=embed)
+            embed.set_image(url=tabla)
+            await user.send(f"🔫 Tabla de precios {self.values[0]}", embed=embed)
             await interaction.response.send_message("📬 ¡Revisá tus MD!", ephemeral=True)
         except:
-            await interaction.response.send_message(
-                "⚠ No puedo enviarte mensajes privados. Activa tus MD.",
-                ephemeral=True
-            )
+            await interaction.response.send_message("⚠ No puedo enviarte MD.", ephemeral=True)
 
-
-# ====== VIEW ======
 class ViewPrecios(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
         self.add_item(SelectPrecios())
 
-
-# ====== FUNCIÓN PARA PUBLICAR EL MENSAJE PERMANENTE ======
 async def publicar_menu_precios():
-    global ultimo_mensaje_precios
     canal = bot.get_channel(CANAL_PRECIOS_ARM)
-    if not canal:
-        print("⚠ CANAL_PRECIOS_ARM no encontrado")
-        return
+    if not canal: return
 
-    # borrar SOLO mensajes previos enviados por el bot
     async for msg in canal.history(limit=500):
         if msg.author == bot.user:
-            try:
-                await msg.delete()
-            except:
-                pass
+            try: await msg.delete()
+            except: pass
 
-    # crear de nuevo el mensaje permanente
     embed = discord.Embed(
         title="🔫 PRECIO DE ARMAS 🔫",
-        description="Selecciona a continuación tu descuento.\n📩 La tabla se enviará **por mensaje privado**.",
+        description="Selecciona tu descuento. La tabla se enviará por MD.",
         color=discord.Color.dark_red()
     )
+    await canal.send(embed=embed, view=ViewPrecios())
 
-    ultimo_mensaje_precios = await canal.send(embed=embed, view=ViewPrecios())
-    print("✔ Menú de precios publicado")
-
-
-# ====== COMANDO (RESTRINGIDO) ======
 @bot.command()
 async def preciosarm(ctx):
     if ctx.author.id not in USERS_ALLOWED_PRECIOS:
-        await ctx.reply("⛔ No tienes permiso para usar este comando.", delete_after=8)
-        return
-
+        return await ctx.reply("⛔ Sin permiso.", delete_after=8)
     if ctx.channel.id != CANAL_PRECIOS_ARM:
-        aviso = await ctx.reply(f"⛔ Este comando solo puede usarse en <#{CANAL_PRECIOS_ARM}>.", delete_after=7)
+        aviso = await ctx.reply(f"⛔ Usa este comando en <#{CANAL_PRECIOS_ARM}>.", delete_after=7)
         await asyncio.sleep(5)
         await aviso.delete()
         await ctx.message.delete()
         return
-
     await publicar_menu_precios()
     await ctx.message.delete()
 
-CANALES_SOLO_COMANDOS = [
-    1442618930291281960,   # ID del canal 1
-    234567890123456789,   # ID del canal 2
-]
-
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-
-    # 🟢 BORRAR comandos "!" después de 10 segundos
-    if message.content.startswith("!"):
-        await message.delete(delay=10)
-        return await bot.process_commands(message)
-
-    # 🔴 BORRAR mensajes que NO sean comandos en canales restringidos
-    if message.channel.id in CANALES_SOLO_COMANDOS:
-        try:
-            await message.delete()
-        except:
-            pass
-        return  # No procesar comandos si no empiezan por "!"
-
-    # NECESARIO para que sigan funcionando los comandos en canales normales
-    await bot.process_commands(message)
-
-
-# ❗ Pon tus IDs aquí
+# ─────────────────────────────────────────────
+# SISTEMA DE VERIFICACIÓN IDENTIDAD
+# ─────────────────────────────────────────────
 CANAL_VERIFICACION = 1442810380446335036
 ROL_VERIFICADO = 1415492409269424214
 
-# Guardamos el mensaje fijo del canal
-mensaje_verificacion = None
-
-
-# ---------- MODAL ----------
-import re
-
 class ModalVerificacion(Modal, title="📋 Verificación de identidad"):
-    nombre = TextInput(label="Nombre (solo una palabra)", required=True)
-    apellido = TextInput(label="Apellido (solo una palabra)", required=True)
-    codigo = TextInput(label="ID numérica (2–6 dígitos)", required=True)
+    nombre = TextInput(label="Nombre")
+    apellido = TextInput(label="Apellido")
+    codigo = TextInput(label="ID numérica (2–6 dígitos)")
 
-    async def on_submit(self, interaction: discord.Interaction):
+    async def on_submit(self, interaction):
         nombre = self.nombre.value.strip()
         apellido = self.apellido.value.strip()
         codigo = self.codigo.value.strip()
-
-        # VALIDACIONES
         if not re.match(r"^[A-Za-zÀ-ÿ]+$", nombre):
-            return await interaction.response.send_message(
-                "❌ El **nombre** debe ser una sola palabra y solo letras.",
-                ephemeral=True
-            )
-
+            return await interaction.response.send_message("❌ Nombre inválido.", ephemeral=True)
         if not re.match(r"^[A-Za-zÀ-ÿ]+$", apellido):
-            return await interaction.response.send_message(
-                "❌ El **apellido** debe ser una sola palabra y solo letras.",
-                ephemeral=True
-            )
-
+            return await interaction.response.send_message("❌ Apellido inválido.", ephemeral=True)
         if not re.match(r"^\d{2,6}$", codigo):
-            return await interaction.response.send_message(
-                "❌ El **ID** debe contener solo números y tener **entre 2 y 6 dígitos**.",
-                ephemeral=True
-            )
+            return await interaction.response.send_message("❌ ID inválida.", ephemeral=True)
 
         nuevo_nombre = f"{nombre} {apellido} | {codigo}"
+        await interaction.response.send_message("🔓 Verificado.", ephemeral=True)
 
-        # RESPONDEMOS PRIMERO AL USUARIO (obligatorio para evitar errores)
-        await interaction.response.send_message(
-            "🔓 **Verificación completada correctamente.** Bienvenido al servidor.",
-            ephemeral=True
-        )
-
-        # LUEGO acciones secundarias (rol y nick)
         rol = interaction.guild.get_role(ROL_VERIFICADO)
         if rol:
-            try:
-                await interaction.user.add_roles(rol, reason="Verificación completada")
-            except:
-                print("⚠ No se pudo asignar el rol")
+            try: await interaction.user.add_roles(rol)
+            except: pass
 
-        try:
-            await interaction.user.edit(nick=nuevo_nombre)
-        except:
-            print("⚠ No se pudo cambiar el nickname (quizás falta permiso)")
+        try: await interaction.user.edit(nick=nuevo_nombre)
+        except: pass
 
-
-# ---------- BOTÓN DEL MENSAJE PERMANENTE ----------
-class BotonVerificar(View):
+class BotonVerificarIdentidad(View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @discord.ui.button(label="📌 Verificar identidad", style=discord.ButtonStyle.green)
-    async def abrir_modal(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def abrir(self, interaction, _):
         await interaction.response.send_modal(ModalVerificacion())
 
-
-# ---------- PUBLICAR MENSAJE PERMANENTE ----------
 async def publicar_mensaje_permanente():
-    global mensaje_verificacion
     canal = bot.get_channel(CANAL_VERIFICACION)
-    if not canal:
-        print("⚠ El canal de verificación no se encontró")
-        return
-
-    # Eliminar mensajes previos del bot
+    if not canal: return
     async for msg in canal.history(limit=50):
         if msg.author == bot.user:
-            try:
-                await msg.delete()
-            except:
-                pass
-
+            try: await msg.delete()
+            except: pass
     embed = discord.Embed(
         title="🔒 VERIFICACIÓN OBLIGATORIA",
-        description="Para acceder al servidor debes **verificar tu identidad**.\n\n"
-                    "Pulsa el botón de abajo para continuar.\n"
-                    "📌 **Formato obligatorio:** Nombre + Apellido + Código",
-        color=discord.Color.gold(),
+        description="Pulsa el botón para verificarte.\nFormato: Nombre + Apellido + Código",
+        color=discord.Color.gold()
     )
-    embed.set_footer(text="Sistema automático de verificación")
+    await canal.send(embed=embed, view=BotonVerificarIdentidad())
 
-    mensaje_verificacion = await canal.send(embed=embed, view=BotonVerificar())
-    print("✔ Mensaje de verificación publicado nuevamente")
-
-
-# ---------- COMANDO !verificar ----------
 @bot.command()
 async def verificar(ctx):
-    """Vuelve a publicar el mensaje permanente (solo para staff)"""
     if ctx.channel.id != CANAL_VERIFICACION:
-        await ctx.reply("⛔ Solo puedes usar este comando en el canal de verificación.", delete_after=6)
+        await ctx.reply("⛔ Solo en este canal.", delete_after=6)
         await ctx.message.delete()
         return
-
     await publicar_mensaje_permanente()
     await ctx.message.delete()
 
+# ─────────────────────────────────────────────
+# ⚠ SISTEMA DE VALIDACIÓN DE RETIROS (CLASE RENOMBRADA)
+# ─────────────────────────────────────────────
+LOG_CHANNEL = 1444293463670788206
+VERIFY_CHANNEL = 1417317069124272250
 
-# ---------- AL INICIAR EL BOT ----------
-@bot.event
-async def on_ready():
-    print(f"🤖 Bot conectado como {bot.user}")
-
-    # mantener botón persistente del sistema de Retiro
-    bot.add_view(BotonVerificar())
-
-    # esperamos 5s para asegurarnos de que Discord cargó todos los canales
-    await asyncio.sleep(5)
-
-    # 🔐 VERIFICACIÓN
-    try:
-        await publicar_mensaje_permanente()
-        print("🔄 Verificación restaurada")
-    except Exception as e:
-        print(f"⚠ Error al restaurar verificación: {e}")
-
-    # 🤝 ALIANZAS
-    try:
-        await publicar_menu()
-        print("🔄 Alianzas restauradas")
-    except Exception as e:
-        print(f"⚠ Error al restaurar alianzas: {e}")
-
-    # 💰 PRECIOS
-    try:
-        await publicar_menu_precios()
-        print("🔄 Precios restaurados")
-    except Exception as e:
-        print(f"⚠ Error al restaurar precios: {e}")
-
-    print("✔ Todos los sistemas han sido restaurados correctamente")
-
-class SorteoModal(discord.ui.Modal, title="Crear Sorteo"):
-    premio = discord.ui.TextInput(label="Premio", required=True)
-    hora = discord.ui.TextInput(
-        label="Hora de entrega (DD/MM HH:MM)",
-        placeholder="Ej: 1/12 21:30",
-        required=True
-    )
-    metodo = discord.ui.TextInput(
-        label="Método de participación",
-        default="Reaccionar con 🎉",
-        required=True
-    )
-
-    async def on_submit(self, interaction: discord.Interaction):
-        texto_hora = self.hora.value.strip().replace("  ", " ")
-
-        match = re.match(r"^(\d{1,2})/(\d{1,2}) (\d{2}):(\d{2})$", texto_hora)
-        if not match:
-            return await interaction.response.send_message(
-                "❌ Formato incorrecto. Usa **DD/MM HH:MM**", ephemeral=True
-            )
-
-        await interaction.response.send_message(
-            f"🎉 **¡SORTEO ABIERTO!** 🎉\n\n"
-            f"📦 **Premio:** {self.premio.value}\n"
-            f"⏰ **Entrega:** {texto_hora}\n"
-            f"🟢 **Para participar reacciona con 🎉**\n\n"
-        )
-
-        mensaje = await interaction.original_response()
-        await mensaje.add_reaction(EMOJI)
-
-
-class BotonSorteo(discord.ui.View):
-    @discord.ui.button(label="Crear Sorteo", style=discord.ButtonStyle.green)
-    async def crear(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(SorteoModal())
-
-@bot.command(name="finalizar")
-async def finalizar(ctx, message_id: int):
-    try:
-        mensaje = await ctx.channel.fetch_message(message_id)
-    except:
-        return await ctx.reply("❌ No se pudo encontrar ese mensaje.")
-
-    reaction = discord.utils.get(mensaje.reactions, emoji=EMOJI)
-    if not reaction:
-        return await ctx.reply("❌ El mensaje no tiene reacciones del sorteo.")
-
-    usuarios = [u async for u in reaction.users()]
-    participantes = [u for u in usuarios if not u.bot]
-
-    if not participantes:
-        return await ctx.reply("❌ Nadie participó en el sorteo.")
-
-    ganador = random.choice(participantes)
-    await ctx.send(
-        f"🏆 **¡TENEMOS GANADOR DEL SORTEO!** 🏆\n\n"
-        f"🎉 Felicidades <@{ganador.id}>!\n"
-        f"📦 Premio obtenido del sorteo.\n"
-        f"🪄 ID del sorteo: `{message_id}`"
-    )
-
-# Pon los IDs de los canales aquí
-LOG_CHANNEL = 1444293463670788206        # canal donde se envía lo que escribe el usuario
-VERIFY_CHANNEL = 1417317069124272250     # canal donde habla el otro bot
-
-# ===== Normalizador para evitar errores por acentos, espacios y mayúsculas =====
 def normalize(text: str):
     text = text.strip().lower()
-    text = ''.join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
-    return text
+    return ''.join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
 
-# ================= MODAL ==================
 class RetiroModal(discord.ui.Modal, title="Verificar Retiro"):
-    pasaporte = discord.ui.TextInput(label="Pasaporte", required=True)
-    item = discord.ui.TextInput(label="Ítem retirado", required=True)
-    fecha = discord.ui.TextInput(label="Fecha (DD/MM/AAAA)", required=True)
-    hora = discord.ui.TextInput(label="Hora (HH:MM)", required=True)
+    pasaporte = TextInput(label="Pasaporte", required=True)
+    item = TextInput(label="Ítem retirado", required=True)
+    fecha = TextInput(label="Fecha (DD/MM/AAAA)", required=True)
+    hora = TextInput(label="Hora (HH:MM)", required=True)
 
-    async def on_submit(self, interaction: discord.Interaction):
-
-        # Enviar información del usuario al canal de registros
+    async def on_submit(self, interaction):
         log_channel = bot.get_channel(LOG_CHANNEL)
         if log_channel:
             await log_channel.send(
@@ -808,84 +384,115 @@ class RetiroModal(discord.ui.Modal, title="Verificar Retiro"):
                 f"⏰ Hora: {self.hora.value}"
             )
 
-        await interaction.response.send_message("⏳ Verificando información, un momento...", ephemeral=True)
-
+        await interaction.response.send_message("⏳ Verificando...", ephemeral=True)
         await asyncio.sleep(10)
 
         canal_verificacion = bot.get_channel(VERIFY_CHANNEL)
         if not canal_verificacion:
-            return await interaction.followup.send("❌ Canal de verificación no configurado.", ephemeral=True)
+            return await interaction.followup.send("❌ Canal no configurado.", ephemeral=True)
 
-        # Obtener el último mensaje del otro bot
-        async for mensaje in canal_verificacion.history(limit=1):
-            contenido = mensaje.content
+        async for m in canal_verificacion.history(limit=1):
+            contenido = m.content
             break
         else:
-            return await interaction.followup.send("❌ No hay mensajes para verificar.", ephemeral=True)
+            return await interaction.followup.send("❌ No hay mensajes.", ephemeral=True)
 
-        # Normalizar para comparar
-        usr_pasaporte = normalize(self.pasaporte.value)
-        usr_item = normalize(self.item.value)
-        usr_fecha = normalize(self.fecha.value)
-        usr_hora = normalize(self.hora.value)
-
+        usr = [normalize(x) for x in [self.pasaporte.value, self.item.value, self.fecha.value, self.hora.value]]
         texto = normalize(contenido)
 
-        # Verificar coincidencias
-        match_pasaporte = usr_pasaporte in texto
-        match_item = usr_item in texto
-        match_fecha = usr_fecha in texto
-        match_hora = usr_hora in texto
-
-        if match_pasaporte and match_item and match_fecha and match_hora:
-            resultado = "🟢 **VALIDADO** – Coinciden todos los datos."
+        if all(u in texto for u in usr):
+            msg = "🟢 VALIDADO — Coinciden todos los datos."
         else:
-            resultado = "🔴 **NO COINCIDE** – La información no coincide con el registro del otro bot."
+            msg = "🔴 NO COINCIDE — Los datos no coinciden."
 
-        await interaction.followup.send(resultado, ephemeral=True)
+        await interaction.followup.send(msg, ephemeral=True)
 
-
-# ================= BOTÓN PERSISTENTE ==================
-class BotonVerificar(discord.ui.View):
+class BotonVerificarRetiro(View):   # ← nombre corregido
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(
-        label="Verificar Retiro",
-        style=discord.ButtonStyle.green,
-        custom_id="boton_verificar_retiro"
-    )
-    async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="Verificar Retiro", style=discord.ButtonStyle.green, custom_id="boton_verificar_retiro")
+    async def abrir(self, interaction, _):
         await interaction.response.send_modal(RetiroModal())
 
-
-# ================== MENSAJE CON EL BOTÓN ==================
 @bot.command()
 async def panel(ctx):
-    await ctx.send(
-        "📌 **Sistema de Validación de Retiro**\nPulsa el botón para iniciar la verificación:",
-        view=BotonVerificar()
-    )
+    await ctx.send("📌 Sistema de validación de retiro — pulsa el botón:", view=BotonVerificarRetiro())
 
+# ─────────────────────────────────────────────
+# SISTEMA DE SORTEOS
+# ─────────────────────────────────────────────
+class SorteoModal(discord.ui.Modal, title="Crear Sorteo"):
+    premio = TextInput(label="Premio", required=True)
+    hora = TextInput(label="Hora de entrega (DD/MM HH:MM)", required=True)
+    metodo = TextInput(label="Método de participación", default="Reaccionar con 🎉")
 
+    async def on_submit(self, interaction):
+        match = re.match(r"^(\d{1,2})/(\d{1,2}) (\d{2}):(\d{2})$", self.hora.value.strip())
+        if not match:
+            return await interaction.response.send_message("❌ Formato incorrecto.", ephemeral=True)
+
+        await interaction.response.send_message(
+            f"🎉 **¡SORTEO ABIERTO!** 🎉\n"
+            f"📦 Premio: {self.premio.value}\n"
+            f"⏰ Entrega: {self.hora.value}\n"
+            f"🟢 Reacciona con 🎉 para participar"
+        )
+        mensaje = await interaction.original_response()
+        await mensaje.add_reaction(EMOJI)
+
+class BotonSorteo(discord.ui.View):
+    @discord.ui.button(label="Crear Sorteo", style=discord.ButtonStyle.green)
+    async def crear(self, interaction, _):
+        await interaction.response.send_modal(SorteoModal())
 
 @bot.command(name="sorteo")
 async def sorteo(ctx):
-    await ctx.reply(
-        "🧾 Pulsa el botón para crear un sorteo:",
-        view=BotonSorteo()
-    )
+    await ctx.reply("🧾 Pulsa el botón para crear un sorteo:", view=BotonSorteo())
 
+@bot.command()
+async def finalizar(ctx, message_id: int):
+    try:
+        mensaje = await ctx.channel.fetch_message(message_id)
+    except:
+        return await ctx.reply("❌ Mensaje no encontrado.")
 
+    reaction = discord.utils.get(mensaje.reactions, emoji=EMOJI)
+    if not reaction:
+        return await ctx.reply("❌ Nadie participó.")
 
-# -------- COMANDO CON PREFIJO -------- #
+    usuarios = [u async for u in reaction.users()]
+    participantes = [u for u in usuarios if not u.bot]
+    if not participantes:
+        return await ctx.reply("❌ Nadie participó.")
 
+    ganador = random.choice(participantes)
+    await ctx.send(f"🏆 **GANADOR:** <@{ganador.id}> — ID del sorteo: `{message_id}`")
 
-# -------- COMANDO CON PREFIJO -------- #
+# ─────────────────────────────────────────────
+# ON READY — actualización automática de canales
+# ─────────────────────────────────────────────
+@bot.event
+async def on_ready():
+    print(f"🤖 Bot conectado como {bot.user}")
 
-# ───── Startup ─────────────────────────────────────────────
+    # bot.add_view() para botones persistentes
+    bot.add_view(BotonVerificarIdentidad())
+    bot.add_view(BotonVerificarRetiro())
+    bot.add_view(ViewAlianzas())
+    bot.add_view(ViewPrecios())
 
+    await asyncio.sleep(5)
 
+    try: await publicar_mensaje_permanente(); print("🔄 Verificación restaurada")
+    except Exception as e: print("⚠ Error al restaurar verificación:", e)
 
+    try: await publicar_menu(); print("🔄 Alianzas restauradas")
+    except Exception as e: print("⚠ Error al restaurar alianzas:", e)
+
+    try: await publicar_menu_precios(); print("🔄 Precios restaurados")
+    except Exception as e: print("⚠ Error al restaurar precios:", e)
+
+    print("✔ Todos los sistemas cargados correctamente")
 
 bot.run(os.getenv("DISCORD_TOKEN2"))
