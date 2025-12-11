@@ -906,7 +906,7 @@ class ModalEntregaRealizada(ui.Modal, title="📤 Registrar ENTREGA realizada"):
         embed.add_field(name="ID jugador (juego)", value=id_juego, inline=True)
         embed.add_field(name="Usuario (Discord)", value=display, inline=True)
         embed.add_field(name="Cantidad entregada", value=cantidad, inline=True)
-        embed.add_field(name="Dinero Recibido", value=cantidad, inline=False)
+        embed.add_field(name="Dinero Recibido", value=cantidad_dinero, inline=False)
         embed.set_footer(text=f"Registrado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
 
         try:
