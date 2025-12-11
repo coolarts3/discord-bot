@@ -4,6 +4,7 @@ import os
 import asyncio
 from discord.ui import View, Modal, TextInput
 import sqlite3
+from discord import Embed, ui
 from datetime import datetime, timedelta
 import random
 import re
@@ -830,6 +831,114 @@ async def finalizar(ctx, message_id: int):
         f"📦 Premio obtenido del sorteo.\n"
         f"🪄 ID del sorteo: `{message_id}`"
     )
+
+# ---------- CONFIG: ajusta estos IDs ----------
+LOG_CHANNEL_RECEPCION = 1448631419982053377  # <-- canal donde guardar registros de "recepción"
+LOG_CHANNEL_ENTREGA   = 1448631483920023632  # <-- canal donde guardar registros de "entrega realizada"
+ROLE_ALLOWED_ID       = 1442629004518756412  # <-- solo miembros con este rol pueden usar el modal de recepción
+# ----------------------------------------------
+
+def normalize_text(t: str) -> str:
+    t = (t or "").strip()
+    return ''.join(c for c in unicodedata.normalize("NFD", t) if unicodedata.category(c) != "Mn")
+
+async def resolve_member_from_mention(interaction: discord.Interaction, raw: str):
+    """Extrae ID numérico de una mención o número crudo. Devuelve (Member|None, display_string)."""
+    m = re.search(r"(\d{5,20})", (raw or ""))
+    if m:
+        user_id = int(m.group(1))
+        try:
+            member = interaction.guild.get_member(user_id) or await interaction.guild.fetch_member(user_id)
+            return member, member.mention if member else f"<@{user_id}>"
+        except Exception:
+            return None, f"<@{user_id}>"
+    # No contiene ID, devolver raw tal cual
+    return None, raw
+
+# ---------- MODAL 1: Recepción (solo rol permitido para abrir) ----------
+class ModalRecepcion(ui.Modal, title="📥 Registrar RECEPCIÓN"):
+    id_jugador = ui.TextInput(label="ID jugador (juego)", placeholder="Ej: 28399", required=True)
+    discord_user = ui.TextInput(label="ID o mención de Discord", placeholder="Ej: <@1234567890> o 1234567890", required=True)
+    cantidad = ui.TextInput(label="Cantidad de droga recibida", placeholder="Ej: 3 unidades / 1x FN Five Seven", required=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # enviar al canal LOG_CHANNEL_RECEPCION
+        log_channel = bot.get_channel(LOG_CHANNEL_RECEPCION)
+        id_juego = self.id_jugador.value.strip()
+        raw_mention = self.discord_user.value.strip()
+        cantidad = self.cantidad.value.strip()
+
+        member, display = await resolve_member_from_mention(interaction, raw_mention)
+
+        embed = Embed(title="📥 RECEPCIÓN registrada", color=discord.Color.green(), timestamp=discord.utils.utcnow())
+        embed.add_field(name="ID jugador (juego)", value=id_juego, inline=True)
+        embed.add_field(name="Usuario (Discord)", value=display, inline=True)
+        embed.add_field(name="Cantidad recibida", value=cantidad, inline=False)
+        embed.set_footer(text=f"Registrado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
+
+        try:
+            if log_channel:
+                await log_channel.send(embed=embed)
+            else:
+                # fallback: enviar al canal donde se ejecutó (no ideal)
+                await interaction.channel.send(embed=embed)
+            await interaction.response.send_message("✅ Recepción registrada y enviada a logs.", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Error al enviar el registro: {e}", ephemeral=True)
+
+# ---------- MODAL 2: Entrega realizada ----------
+class ModalEntregaRealizada(ui.Modal, title="📤 Registrar ENTREGA realizada"):
+    id_jugador = ui.TextInput(label="ID jugador (juego)", placeholder="Ej: 28399", required=True)
+    discord_user = ui.TextInput(label="ID o mención de Discord", placeholder="Ej: <@1234567890> o 1234567890", required=True)
+    cantidad = ui.TextInput(label="Cantidad de droga entregada", placeholder="Ej: 3 unidades / 1x FN Five Seven", required=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        log_channel = bot.get_channel(LOG_CHANNEL_ENTREGA)
+        id_juego = self.id_jugador.value.strip()
+        raw_mention = self.discord_user.value.strip()
+        cantidad = self.cantidad.value.strip()
+
+        member, display = await resolve_member_from_mention(interaction, raw_mention)
+
+        embed = Embed(title="📤 ENTREGA registrada", color=discord.Color.orange(), timestamp=discord.utils.utcnow())
+        embed.add_field(name="ID jugador (juego)", value=id_juego, inline=True)
+        embed.add_field(name="Usuario (Discord)", value=display, inline=True)
+        embed.add_field(name="Cantidad entregada", value=cantidad, inline=False)
+        embed.set_footer(text=f"Registrado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
+
+        try:
+            if log_channel:
+                await log_channel.send(embed=embed)
+            else:
+                await interaction.channel.send(embed=embed)
+            await interaction.response.send_message("✅ Entrega registrada y enviada a logs.", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Error al enviar el registro: {e}", ephemeral=True)
+
+# ---------- VIEW con los 2 botones ----------
+class ViewEntregas(ui.View):
+    def __init__(self, timeout: float | None = None):
+        super().__init__(timeout=timeout)
+
+    @ui.button(label="📥 Registrar RECEPCIÓN", style=discord.ButtonStyle.green, custom_id="btn_recepcion_entrega")
+    async def boton_recepcion(self, interaction: discord.Interaction, button: ui.Button):
+        # comprobar rol del usuario antes de abrir modal
+        has_role = any(r.id == ROLE_ALLOWED_ID for r in getattr(interaction.user, "roles", []))
+        if not has_role:
+            return await interaction.response.send_message("⛔ No tienes permiso para registrar recepciones.", ephemeral=True)
+
+        await interaction.response.send_modal(ModalRecepcion())
+
+    @ui.button(label="📤 Registrar ENTREGA realizada", style=discord.ButtonStyle.blurple, custom_id="btn_entrega_realizada")
+    async def boton_entrega(self, interaction: discord.Interaction, button: ui.Button):
+        # este botón puede usarlo cualquiera (o añade otra comprobación si quieres)
+        await interaction.response.send_modal(ModalEntregaRealizada())
+
+# ---------- comando que publica el mensaje con los 2 botones ----------
+@bot.command(name="entrega")
+async def comando_entrega(ctx: commands.Context):
+    vista = ViewEntregas(timeout=None)  # timeout=None para que la view funcione indefinidamente
+    await ctx.send("📦 Panel de entregas — elige una acción:", view=vista)
 
 # ─────────────────────────────────────────────
 # ON_READY: ACTUALIZAR CANALES AUTOMÁTICAMENTE
