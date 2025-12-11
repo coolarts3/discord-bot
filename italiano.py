@@ -860,7 +860,6 @@ class ModalRecepcion(ui.Modal, title="📥 Registrar RECEPCIÓN"):
     id_jugador = ui.TextInput(label="ID jugador (juego)", placeholder="Ej: 28399", required=True)
     discord_user = ui.TextInput(label="ID o mención de Discord", placeholder="Ej: <@1234567890> o 1234567890", required=True)
     cantidad = ui.TextInput(label="Cantidad de droga recibida", placeholder="Ej: 60 coca", required=True)
-    cantidad_dinero = ui.TextInput(label="Cantidad de dinero recibido", placeholder="Ej: 1000000$", required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
         # enviar al canal LOG_CHANNEL_RECEPCION
@@ -868,15 +867,13 @@ class ModalRecepcion(ui.Modal, title="📥 Registrar RECEPCIÓN"):
         id_juego = self.id_jugador.value.strip()
         raw_mention = self.discord_user.value.strip()
         cantidad = self.cantidad.value.strip()
-        cantidad_dinero = self.cantidad_dinero.value.strip()
 
         member, display = await resolve_member_from_mention(interaction, raw_mention)
 
         embed = Embed(title="📥 RECEPCIÓN registrada", color=discord.Color.green(), timestamp=discord.utils.utcnow())
         embed.add_field(name="ID jugador (juego)", value=id_juego, inline=True)
         embed.add_field(name="Usuario (Discord)", value=display, inline=True)
-        embed.add_field(name="Cantidad recibida", value=cantidad, inline=True)
-        embed.add_field(name="Dinero Recibido", value=cantidad, inline=False)
+        embed.add_field(name="Cantidad recibida", value=cantidad, inline=False)
         embed.set_footer(text=f"Registrado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
 
         try:
@@ -894,19 +891,22 @@ class ModalEntregaRealizada(ui.Modal, title="📤 Registrar ENTREGA realizada"):
     id_jugador = ui.TextInput(label="ID jugador (juego)", placeholder="Ej: 28399", required=True)
     discord_user = ui.TextInput(label="ID o mención de Discord", placeholder="Ej: <@1234567890> o 1234567890", required=True)
     cantidad = ui.TextInput(label="Cantidad de droga entregada", placeholder="Ej: 60 Coca", required=True)
+    cantidad_dinero = ui.TextInput(label="Cantidad de dinero recibido", placeholder="Ej: 1000000$", required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
         log_channel = bot.get_channel(LOG_CHANNEL_ENTREGA)
         id_juego = self.id_jugador.value.strip()
         raw_mention = self.discord_user.value.strip()
         cantidad = self.cantidad.value.strip()
+        cantidad_dinero = self.cantidad_dinero.value.strip()
 
         member, display = await resolve_member_from_mention(interaction, raw_mention)
 
         embed = Embed(title="📤 ENTREGA registrada", color=discord.Color.orange(), timestamp=discord.utils.utcnow())
         embed.add_field(name="ID jugador (juego)", value=id_juego, inline=True)
         embed.add_field(name="Usuario (Discord)", value=display, inline=True)
-        embed.add_field(name="Cantidad entregada", value=cantidad, inline=False)
+        embed.add_field(name="Cantidad entregada", value=cantidad, inline=True)
+        embed.add_field(name="Dinero Recibido", value=cantidad, inline=False)
         embed.set_footer(text=f"Registrado por {interaction.user}", icon_url=interaction.user.display_avatar.url)
 
         try:
