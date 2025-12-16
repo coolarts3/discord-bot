@@ -22,7 +22,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # SISTEMA DE ALIANZAS
 # ─────────────────────────────────────────────
 CANAL_ALIANZAS = 1442618930291281960  # ID del canal permanente
-USERS_ALLOWED = [352471626400661514, 352471626400661514]
+USERS_ALLOWED = [352471626400661514, 691007149542998096]
 
 DB_FOLDER = "/storage"
 DB = f"{DB_FOLDER}/alianzas.db"
