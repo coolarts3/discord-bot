@@ -955,7 +955,7 @@ async def clearall(ctx):
 
     await ctx.send("✅ **Canal limpiado por completo**.", delete_after=3)
 
-@bot.command(name="help")
+@bot.command(name="ayuda")
 async def help_command(ctx):
     embed = discord.Embed(
         title="📖 AYUDA DEL BOT",
