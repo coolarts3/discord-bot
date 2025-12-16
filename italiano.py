@@ -955,6 +955,107 @@ async def clearall(ctx):
 
     await ctx.send("✅ **Canal limpiado por completo**.", delete_after=3)
 
+@bot.command(name="help")
+async def help_command(ctx):
+    embed = discord.Embed(
+        title="📖 AYUDA DEL BOT",
+        description="Lista completa de comandos disponibles.\n"
+                    "Algunos comandos pueden requerir permisos especiales o canales específicos.",
+        color=discord.Color.blurple()
+    )
+
+    embed.add_field(
+        name="👋 Comandos generales",
+        value=(
+            "`!hola` → Saludo del bot\n"
+            "`!help` → Muestra este menú de ayuda"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🤝 Sistema de Alianzas",
+        value=(
+            "`!setalianzas` → Crear nueva alianza (usuarios autorizados)\n"
+            "`!editaralianzas <ID>` → Editar una alianza existente\n"
+            "`!deletealianza <ID>` → Eliminar una alianza\n"
+            "📌 El menú de alianzas se gestiona automáticamente"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🔫 Planes de Atraco",
+        value=(
+            "`!plan` → Crear un plan de atraco (canal específico)\n"
+            "🔫 Reacciona para unirte al plan\n"
+            "⏱️ Los planes se eliminan automáticamente"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="💰 Precios de Armas",
+        value=(
+            "`!preciosarm` → Publica el menú de precios\n"
+            "📩 Las tablas se envían por mensaje privado"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🔒 Verificación de Identidad",
+        value=(
+            "`!verificar` → Publica el panel de verificación\n"
+            "🆔 Formato: Nombre + Apellido + Código"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="📦 Validación de Retiros",
+        value=(
+            "`!panel` → Abrir panel de verificación de retiros\n"
+            "🔍 El sistema compara con el registro de otro bot"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🎉 Sorteos",
+        value=(
+            "`!sorteo` → Crear un sorteo\n"
+            "`!finalizar <ID mensaje>` → Finalizar sorteo y elegir ganador\n"
+            "🎉 Participación mediante reacción"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🚚 Entregas",
+        value=(
+            "`!entrega` → Abrir panel de entregas\n"
+            "📥 Registrar recepción (requiere rol)\n"
+            "📤 Registrar entrega realizada"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🧹 Administración",
+        value=(
+            "`!clearall` → Borra todos los mensajes del canal (admin)"
+        ),
+        inline=False
+    )
+
+    embed.set_footer(
+        text=f"Solicitado por {ctx.author}",
+        icon_url=ctx.author.display_avatar.url
+    )
+
+    await ctx.send(embed=embed, delete_after=120)
+
 # ─────────────────────────────────────────────
 # ON_READY: ACTUALIZAR CANALES AUTOMÁTICAMENTE
 # ─────────────────────────────────────────────
