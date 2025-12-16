@@ -1,3 +1,10 @@
-{polla: "polla"
-
-}
+[
+    {
+        "id": 1,
+        "familia": "Los Corleone",
+        "numero": "12",
+        "foto": "https://i.imgur.com/abc123.png",
+        "compra": "10",
+        "venta": "15"
+    }
+]
