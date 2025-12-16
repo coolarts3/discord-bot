@@ -3,10 +3,10 @@ from discord.ext import commands
 import os
 import asyncio
 from discord.ui import View, Modal, TextInput
-import sqlite3
 from discord import Embed, ui
 from datetime import datetime, timedelta
 import random
+import json
 import re
 import unicodedata
 
@@ -18,6 +18,12 @@ EMOJI = "🎉"
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+ALIANZAS_FILE = "alianzas.json"
+
+if not os.path.exists(ALIANZAS_FILE):
+    with open(ALIANZAS_FILE, "w", encoding="utf-8") as f:
+        json.dump([], f, indent=4, ensure_ascii=False)
+
 # ─────────────────────────────────────────────
 # SISTEMA DE ALIANZAS
 # ─────────────────────────────────────────────
@@ -28,77 +34,61 @@ DB_FOLDER = "/storage"
 DB = f"{DB_FOLDER}/alianzas.db"
 os.makedirs(DB_FOLDER, exist_ok=True)
 
-conn = sqlite3.connect(DB)
-cursor = conn.cursor()
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS alianzas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    familia TEXT,
-    numero TEXT,
-    foto TEXT,
-    compra TEXT,
-    venta TEXT
-)
-""")
-conn.commit()
-conn.close()
+def cargar_alianzas():
+    with open(ALIANZAS_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
 
+def guardar_alianzas(data):
+    with open(ALIANZAS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
 
 def obtener_alianzas():
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, familia, numero FROM alianzas")
-    data = cursor.fetchall()
-    conn.close()
-    return data
-
+    data = cargar_alianzas()
+    return [(a["id"], a["familia"], a["numero"]) for a in data]
 
 def obtener_info(id_familia):
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM alianzas WHERE id = ?", (id_familia,))
-    row = cursor.fetchone()
-    conn.close()
-    if not row:
-        return None
-    return {
-        "id": row[0],
-        "familia": row[1],
-        "numero": row[2],
-        "foto": row[3],
-        "compra": row[4],
-        "venta": row[5],
-    }
-
+    data = cargar_alianzas()
+    for a in data:
+        if a["id"] == id_familia:
+            return a
+    return None
 
 def guardar_nueva(familia, numero, foto, compra, venta):
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO alianzas (familia, numero, foto, compra, venta)
-        VALUES (?, ?, ?, ?, ?)
-    """, (familia, numero, foto, compra, venta))
-    conn.commit()
-    conn.close()
+    data = cargar_alianzas()
 
+    nuevo_id = max([a["id"] for a in data], default=0) + 1
+
+    data.append({
+        "id": nuevo_id,
+        "familia": familia,
+        "numero": numero,
+        "foto": foto,
+        "compra": compra,
+        "venta": venta
+    })
+
+    guardar_alianzas(data)
 
 def actualizar_alianza(id_fam, familia, numero, foto, compra, venta):
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE alianzas SET familia=?, numero=?, foto=?, compra=?, venta=? WHERE id=?
-    """, (familia, numero, foto, compra, venta, id_fam))
-    conn.commit()
-    conn.close()
+    data = cargar_alianzas()
 
+    for a in data:
+        if a["id"] == id_fam:
+            a.update({
+                "familia": familia,
+                "numero": numero,
+                "foto": foto,
+                "compra": compra,
+                "venta": venta
+            })
+            break
+
+    guardar_alianzas(data)
 
 def borrar_alianza(id_fam):
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM alianzas WHERE id=?", (id_fam,))
-    conn.commit()
-    conn.close()
-
+    data = cargar_alianzas()
+    data = [a for a in data if a["id"] != id_fam]
+    guardar_alianzas(data)
 
 class ModalNuevaAlianza(discord.ui.Modal, title="➕ AÑADIR NUEVA ALIANZA"):
     familia = TextInput(label="🔮Familia + Material venta", placeholder="Ej: Los Corleone")
