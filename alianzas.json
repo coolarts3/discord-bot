@@ -2,8 +2,8 @@
   {
     "id": 1,
     "familia": "LA04",
-    "numero": "101",
-    "foto": "https://i.imgur.com/abc123.png",
+    "numero": "13",
+    "foto": "https://imgur.com/yAQweiL",
     "objeto": "Balas",
     "compra": "30%",
     "venta": "30%"
@@ -11,8 +11,8 @@
   {
     "id": 2,
     "familia": "Drift King Desguace",
-    "numero": "102",
-    "foto": "https://i.imgur.com/abc123.png",
+    "numero": "2",
+    "foto": "https://imgur.com/dgLyTWw",
     "objeto": "Tarjetas poco comunes",
     "compra": "0%",
     "venta": "30%"
@@ -20,8 +20,8 @@
   {
     "id": 3,
     "familia": "Siciliaia",
-    "numero": "103",
-    "foto": "https://i.imgur.com/abc123.png",
+    "numero": "6",
+    "foto": "https://imgur.com/zmcmP9v",
     "objeto": "Coca",
     "compra": "30%",
     "venta": "30%"
@@ -29,8 +29,8 @@
   {
     "id": 4,
     "familia": "Barragem",
-    "numero": "104",
-    "foto": "https://i.imgur.com/abc123.png",
+    "numero": "8",
+    "foto": "https://imgur.com/vE1cJRe",
     "objeto": "Porros",
     "compra": "30%",
     "venta": "30%"
@@ -38,7 +38,7 @@
   {
     "id": 5,
     "familia": "Anonimato",
-    "numero": "105",
+    "numero": "-1",
     "foto": "https://i.imgur.com/abc123.png",
     "objeto": "Balas",
     "compra": "30%",
@@ -47,28 +47,10 @@
   {
     "id": 6,
     "familia": "Black Angels",
-    "numero": "106",
-    "foto": "https://i.imgur.com/abc123.png",
+    "numero": "10",
+    "foto": "https://imgur.com/qbO5dCg",
     "objeto": "Meta",
     "compra": "30%",
     "venta": "30%"
-  },
-  {
-    "id": 7,
-    "familia": "Cúpula",
-    "numero": "107",
-    "foto": "https://i.imgur.com/abc123.png",
-    "objeto": "Blanqueo",
-    "compra": "15%",
-    "venta": "30%"
-  },
-  {
-    "id": 8,
-    "familia": "Cúpula",
-    "numero": "108",
-    "foto": "https://i.imgur.com/abc123.png",
-    "objeto": "Esposas",
-    "compra": "0%",
-    "venta": "30%"
-  } 
+  }
 ]
