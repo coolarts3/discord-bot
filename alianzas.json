@@ -3,7 +3,7 @@
     "id": 1,
     "familia": "LA04",
     "numero": "13",
-    "foto": "https://imgur.com/yAQweiL",
+    "foto": "https://i.imgur.com/yAQweiL.png",
     "objeto": "Balas",
     "compra": "30%",
     "venta": "30%"
@@ -12,7 +12,7 @@
     "id": 2,
     "familia": "Drift King Desguace",
     "numero": "2",
-    "foto": "https://imgur.com/dgLyTWw",
+    "foto": "https://i.imgur.com/dgLyTWw.png",
     "objeto": "Tarjetas poco comunes",
     "compra": "0%",
     "venta": "30%"
@@ -21,7 +21,7 @@
     "id": 3,
     "familia": "Siciliaia",
     "numero": "6",
-    "foto": "https://imgur.com/zmcmP9v",
+    "foto": "https://i.imgur.com/zmcmP9v.png",
     "objeto": "Coca",
     "compra": "30%",
     "venta": "30%"
@@ -30,7 +30,7 @@
     "id": 4,
     "familia": "Barragem",
     "numero": "8",
-    "foto": "https://imgur.com/vE1cJRe",
+    "foto": "https://i.imgur.com/vE1cJRe.png",
     "objeto": "Porros",
     "compra": "30%",
     "venta": "30%"
@@ -48,7 +48,7 @@
     "id": 6,
     "familia": "Black Angels",
     "numero": "10",
-    "foto": "https://imgur.com/qbO5dCg",
+    "foto": "https://i.imgur.com/qbO5dCg.png",
     "objeto": "Meta",
     "compra": "30%",
     "venta": "30%"
