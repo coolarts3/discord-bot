@@ -5,6 +5,7 @@
     "numero": "13",
     "foto": "https://i.imgur.com/yAQweiL.png",
     "objeto": "Balas",
+    "precio": "X",
     "compra": "30%",
     "venta": "30%"
   },
@@ -13,7 +14,8 @@
     "familia": "Drift King Desguace",
     "numero": "2",
     "foto": "https://i.imgur.com/dgLyTWw.png",
-    "objeto": "Tarjetas poco comunes",
+    "objeto": "Objetos para robos (tarjetas, ganzus, etc)",
+    "precio": "X",
     "compra": "0%",
     "venta": "30%"
   },
@@ -23,6 +25,7 @@
     "numero": "6",
     "foto": "https://i.imgur.com/zmcmP9v.png",
     "objeto": "Coca",
+    "precio": "15K",
     "compra": "30%",
     "venta": "30%"
   },
@@ -32,6 +35,7 @@
     "numero": "8",
     "foto": "https://i.imgur.com/vE1cJRe.png",
     "objeto": "Porros",
+    "precio": "15K",
     "compra": "30%",
     "venta": "30%"
   },
@@ -41,6 +45,7 @@
     "numero": "-1",
     "foto": "https://i.imgur.com/abc123.png",
     "objeto": "Balas",
+    "precio": "X",
     "compra": "30%",
     "venta": "30%"
   },
@@ -50,6 +55,7 @@
     "numero": "10",
     "foto": "https://i.imgur.com/qbO5dCg.png",
     "objeto": "Meta",
+    "precio": "15K",
     "compra": "30%",
     "venta": "30%"
   }
