@@ -154,7 +154,7 @@ class SelectAlianzas(discord.ui.Select):
     def __init__(self):
         alianzas = obtener_alianzas()
         options = [
-            discord.SelectOption(label=f"{row[1]} (#{row[2]})", value=str(row[0]))
+            discord.SelectOption(label=f"{row[1]} (#{row[2]}) - {row[4]}", value=str(row[0]))
             for row in alianzas
         ]
 
@@ -177,9 +177,9 @@ class SelectAlianzas(discord.ui.Select):
             color=discord.Color.blue()
         )
         embed.add_field(name="Número", value=info["numero"], inline=True)
-        embed.add_field(name="Producto", value=info["objeto"], inline=True)
         embed.add_field(name="Compra %", value=info["compra"], inline=True)
         embed.add_field(name="Venta %", value=info["venta"], inline=True)
+        embed.add_field(name="Producto", value=info["objeto"], inline=False)
         embed.set_image(url=info["foto"])
         embed.set_footer(text="Sistema de alianzas")
 
