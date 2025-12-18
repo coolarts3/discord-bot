@@ -177,6 +177,7 @@ class SelectAlianzas(discord.ui.Select):
             color=discord.Color.blue()
         )
         embed.add_field(name="Número", value=info["numero"], inline=True)
+        embed.add_field(name="Producto", value=info["objeto"], inline=True)
         embed.add_field(name="Compra %", value=info["compra"], inline=True)
         embed.add_field(name="Venta %", value=info["venta"], inline=True)
         embed.set_image(url=info["foto"])
