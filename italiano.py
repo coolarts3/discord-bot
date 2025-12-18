@@ -180,6 +180,7 @@ class SelectAlianzas(discord.ui.Select):
         embed.add_field(name="Compra %", value=info["compra"], inline=True)
         embed.add_field(name="Venta %", value=info["venta"], inline=True)
         embed.add_field(name="Producto", value=info["objeto"], inline=True)
+        embed.add_field(name= "\u200B", value= "\u200B", inline= True)
         embed.add_field(name="Precio Base", value=info["precio"], inline=True)
         embed.set_image(url=info["foto"])
         embed.set_footer(text="Sistema de alianzas")
