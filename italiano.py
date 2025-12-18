@@ -154,7 +154,7 @@ class SelectAlianzas(discord.ui.Select):
     def __init__(self):
         alianzas = obtener_alianzas()
         options = [
-            discord.SelectOption(label=f"{row[1]} (#{row[2]}) - {row[4]}", value=str(row[0]))
+            discord.SelectOption(label=f"{row[1]} (#{row[2]}) - {row[2]}", value=str(row[0]))
             for row in alianzas
         ]
 
