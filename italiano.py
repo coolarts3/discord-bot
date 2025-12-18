@@ -44,7 +44,7 @@ def guardar_alianzas(data):
 
 def obtener_alianzas():
     data = cargar_alianzas()
-    return [(a["id"], a["familia"], a["numero"]) for a in data]
+    return [(a["id"], a["familia"], a["numero"], a["objeto"]) for a in data]
 
 def obtener_info(id_familia):
     data = cargar_alianzas()
@@ -154,7 +154,7 @@ class SelectAlianzas(discord.ui.Select):
     def __init__(self):
         alianzas = obtener_alianzas()
         options = [
-            discord.SelectOption(label=f"{row[1]} (#{row[2]}) - {row[2]}", value=str(row[0]))
+            discord.SelectOption(label=f"{row[1]} (#{row[2]}) - {row[3]}", value=str(row[0]))
             for row in alianzas
         ]
 
