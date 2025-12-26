@@ -30,26 +30,6 @@
     "venta": "30%"
   },
   {
-    "id": 4,
-    "familia": "Barragem",
-    "numero": "8",
-    "foto": "https://i.imgur.com/vE1cJRe.png",
-    "objeto": "Porros",
-    "precio": "15K",
-    "compra": "30%",
-    "venta": "30%"
-  },
-  {
-    "id": 5,
-    "familia": "Anonimato",
-    "numero": "-1",
-    "foto": "https://i.imgur.com/abc123.png",
-    "objeto": "Balas",
-    "precio": "X",
-    "compra": "30%",
-    "venta": "30%"
-  },
-  {
     "id": 6,
     "familia": "Black Angels",
     "numero": "10",
