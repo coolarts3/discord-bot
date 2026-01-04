@@ -38,5 +38,35 @@
     "precio": "15K",
     "compra": "30%",
     "venta": "30%"
+  },
+  {
+    "id": 4,
+    "familia": "Vanilla",
+    "numero": "4 FUEGO",
+    "foto": "https://i.imgur.com/rrbGZzi.png",
+    "objeto": "Lavado",
+    "precio": "15K",
+    "compra": "30%",
+    "venta": "25%"
+  },
+  {
+    "id": 8,
+    "familia": "Barragem",
+    "numero": "8",
+    "foto": "https://i.imgur.com/xEfqW0k.png",
+    "objeto": "Porros",
+    "precio": "15K",
+    "compra": "30%",
+    "venta": "30%"
+  },
+  {
+    "id": 14,
+    "familia": "Divine Ghost",
+    "numero": "14",
+    "foto": "https://i.imgur.com/9NcMNo0.png",
+    "objeto": "Lavado",
+    "precio": "15K",
+    "compra": "30%",
+    "venta": "25%"
   }
 ]
