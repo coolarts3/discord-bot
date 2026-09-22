@@ -1073,11 +1073,7 @@ async def enviar_aviso_voz(canal_voz):
 # ============================================================
 
 @bot.event
-async def on_voice_state_update(
-    member,
-    before,
-    after
-):
+async def on_voice_state_update(member, before, after):
 
     # Ignorar bots
     if member.bot:
@@ -1094,9 +1090,9 @@ async def on_voice_state_update(
             if not m.bot
         ]
 
-        # Si el canal queda vacío,
-        # reiniciamos el estado
-        if len(personas_restantes) == 0:
+        # Si el canal queda completamente vacío,
+        # reiniciamos su estado.
+        if not personas_restantes:
 
             ultimos_avisos_voz.pop(
                 before.channel.id,
@@ -1104,8 +1100,8 @@ async def on_voice_state_update(
             )
 
             print(
-                f"🔄 {before.channel.name} "
-                f"quedó vacío."
+                f"🔴 {before.channel.name} quedó vacío. "
+                f"Estado reiniciado."
             )
 
     # ========================================================
@@ -1125,46 +1121,33 @@ async def on_voice_state_update(
             return
 
         # ====================================================
-        # CANAL NUEVO / ESTABA VACÍO
+        # EL CANAL ESTABA VACÍO
         # ====================================================
 
+        # Si no existe en el diccionario significa que
+        # anteriormente estaba vacío.
         if canal_voz.id not in ultimos_avisos_voz:
 
             print(
-                f"🟢 Canal activado: "
-                f"{canal_voz.name}"
+                f"🟢 {canal_voz.name} se ha activado. "
+                f"Hay {len(personas)} persona(s)."
             )
 
-            await enviar_aviso_voz(
-                canal_voz
-            )
+            await enviar_aviso_voz(canal_voz)
 
             return
 
         # ====================================================
-        # ALGUIEN NUEVO ENTRA A UN CANAL YA ACTIVO
+        # EL CANAL YA ESTABA ACTIVO
         # ====================================================
 
-        ultimo_aviso = ultimos_avisos_voz.get(
-            canal_voz.id
-        )
-
-        if ultimo_aviso is None:
-            return
-
-        ahora = datetime.now(timezone.utc)
-
-        tiempo = (
-            ahora - ultimo_aviso
-        ).total_seconds()
-
-        # Entrada nueva:
-        # avisar inmediatamente
-        await enviar_aviso_voz(
-            canal_voz
-        )
-
-
+        # NO hacemos nada.
+        #
+        # Si entra otra persona mientras ya hay gente:
+        # NO se manda ningún mensaje.
+        #
+        # El aviso de 30 minutos lo controla
+        # avisos_voz_periodicos().
 # ============================================================
 # AVISOS AUTOMÁTICOS CADA 30 MINUTOS
 # ============================================================
@@ -1190,7 +1173,10 @@ async def avisos_voz_periodicos():
             if not m.bot
         ]
 
-        # Canal vacío
+        # ====================================================
+        # CANAL VACÍO
+        # ====================================================
+
         if not personas:
 
             ultimos_avisos_voz.pop(
@@ -1200,11 +1186,14 @@ async def avisos_voz_periodicos():
 
             continue
 
+        # ====================================================
+        # CANAL ACTIVO
+        # ====================================================
+
         ultimo_aviso = ultimos_avisos_voz.get(
             canal_voz.id
         )
 
-        # Nunca se ha avisado
         if ultimo_aviso is None:
 
             await enviar_aviso_voz(
@@ -1213,17 +1202,16 @@ async def avisos_voz_periodicos():
 
             continue
 
-        tiempo = (
+        tiempo_transcurrido = (
             ahora - ultimo_aviso
         ).total_seconds()
 
-        # Han pasado 30 minutos
-        if tiempo >= TIEMPO_AVISO_VOZ:
+        # Cada 30 minutos
+        if tiempo_transcurrido >= TIEMPO_AVISO_VOZ:
 
             await enviar_aviso_voz(
                 canal_voz
             )
-
 async def comprobar_voz_al_iniciar():
 
     canal_general = bot.get_channel(
