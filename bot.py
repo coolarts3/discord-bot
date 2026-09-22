@@ -872,8 +872,7 @@ async def secretcomando(ctx):
     mensaje = await ctx.send("🟢 Permisos aplicados correctamente.")
     await asyncio.sleep(5)
     await mensaje.delete()
-
-```python
+    
 # ----------------------------
 # AVISOS DE ACTIVIDAD EN VOZ
 # ----------------------------
