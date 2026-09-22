@@ -873,11 +873,17 @@ async def secretcomando(ctx):
     await asyncio.sleep(5)
     await mensaje.delete()
 
+```python
 # ----------------------------
-# NOTIFICACIÓN AL ENTRAR A VOZ
+# AVISOS DE ACTIVIDAD EN VOZ
 # ----------------------------
 
-CANAL_GENERAL_ID = 1437188675225124874  # 👈 Pon aquí la ID del canal general
+CANAL_GENERAL_ID = 123456789012345678  # ID del canal general
+TIEMPO_AVISO_VOZ = 30 * 60              # 30 minutos entre avisos
+
+# Guarda cuándo se mandó el último aviso para cada canal de voz
+ultimos_avisos_voz = {}
+
 
 @bot.event
 async def on_voice_state_update(member, before, after):
@@ -885,16 +891,39 @@ async def on_voice_state_update(member, before, after):
     if member.bot:
         return
 
-    # Solo actuar cuando entra a un canal de voz
+    # Solo nos interesa cuando alguien ENTRA a un canal
     if before.channel is None and after.channel is not None:
 
-        canal_general = bot.get_channel(CANAL_GENERAL_ID)
+        canal_voz = after.channel
 
-        if canal_general:
-            await canal_general.send(
-                f"📢 @everyone **{member.display_name}** se ha conectado al canal de voz "
-                f"🎧 **{after.channel.name}**"
-            )
+        # Comprobar cuántas personas hay ahora mismo
+        personas = [m for m in canal_voz.members if not m.bot]
+
+        # Si es la primera persona que entra
+        if len(personas) == 1:
+
+            ahora = datetime.now(timezone.utc)
+            ultimo_aviso = ultimos_avisos_voz.get(canal_voz.id)
+
+            # Si nunca hemos avisado, avisamos
+            # Si ya avisamos pero han pasado 30 minutos, volvemos a avisar
+            if (
+                ultimo_aviso is None
+                or (ahora - ultimo_aviso).total_seconds() >= TIEMPO_AVISO_VOZ
+            ):
+
+                canal_general = bot.get_channel(CANAL_GENERAL_ID)
+
+                if canal_general:
+                    await canal_general.send(
+                        f"📢 @everyone **¡Hay gente en voz!**\n"
+                        f"🎧 El canal **{canal_voz.name}** está activo.\n"
+                        f"👥 **{len(personas)}** persona(s) conectada(s)."
+                    )
+
+                    # Guardar cuándo se avisó
+                    ultimos_avisos_voz[canal_voz.id] = ahora
+
 
 # ----------------------------
 # INICIAR BOT
