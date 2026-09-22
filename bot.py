@@ -877,7 +877,7 @@ async def secretcomando(ctx):
 # AVISOS DE ACTIVIDAD EN VOZ
 # ----------------------------
 
-CANAL_GENERAL_ID = 123456789012345678  # ID del canal general
+CANAL_GENERAL_ID = 1437188675225124874  # ID del canal general
 TIEMPO_AVISO_VOZ = 30 * 60              # 30 minutos entre avisos
 
 # Guarda cuándo se mandó el último aviso para cada canal de voz
