@@ -79,6 +79,11 @@ async def on_ready():
     if not aviso_automatico.is_running():
         aviso_automatico.start()
 
+if not avisos_voz_periodicos.is_running():
+    avisos_voz_periodicos.start()
+
+await comprobar_voz_al_iniciar()
+
 
 @bot.event
 async def on_message(message):
@@ -873,55 +878,384 @@ async def secretcomando(ctx):
     await asyncio.sleep(5)
     await mensaje.delete()
     
-# ----------------------------
+# ============================================================
 # AVISOS DE ACTIVIDAD EN VOZ
-# ----------------------------
+# ============================================================
 
-CANAL_GENERAL_ID = 1437188675225124874  # ID del canal general
-TIEMPO_AVISO_VOZ = 30 * 60              # 30 minutos entre avisos
+CANAL_GENERAL_ID = 1437188675225124874
 
-# Guarda cuándo se mandó el último aviso para cada canal de voz
+# Cada cuánto se vuelve a anunciar un canal que sigue activo
+TIEMPO_AVISO_VOZ = 30 * 60  # 30 minutos
+
+# Guarda el último aviso de cada canal
 ultimos_avisos_voz = {}
 
 
+# ============================================================
+# BOTÓN "UNIRSE AL CANAL"
+# ============================================================
+
+class UnirseCanalVoz(discord.ui.Button):
+
+    def __init__(self, canal_voz_id):
+        super().__init__(
+            label="🎧 Unirse al canal",
+            style=discord.ButtonStyle.success
+        )
+
+        self.canal_voz_id = canal_voz_id
+
+    async def callback(self, interaction: discord.Interaction):
+
+        # Buscar el canal de voz
+        canal_voz = interaction.guild.get_channel(
+            self.canal_voz_id
+        )
+
+        if canal_voz is None:
+            await interaction.response.send_message(
+                "❌ Ese canal de voz ya no existe.",
+                ephemeral=True
+            )
+            return
+
+        # Comprobar que realmente sea un canal de voz
+        if not isinstance(canal_voz, discord.VoiceChannel):
+            await interaction.response.send_message(
+                "❌ Ese canal ya no está disponible.",
+                ephemeral=True
+            )
+            return
+
+        # Comprobar que el usuario esté conectado a Discord
+        if interaction.user.voice is None:
+            # El usuario no está en ningún canal.
+            # No podemos moverlo si Discord no permite
+            # mover usuarios desconectados.
+            await interaction.response.send_message(
+                "❌ Primero tienes que conectarte a un canal "
+                "de voz para poder moverte.",
+                ephemeral=True
+            )
+            return
+
+        try:
+
+            await interaction.user.move_to(canal_voz)
+
+            await interaction.response.send_message(
+                f"✅ Te has unido a **{canal_voz.name}**.",
+                ephemeral=True
+            )
+
+        except discord.Forbidden:
+
+            await interaction.response.send_message(
+                "❌ No tengo permisos para moverte a ese "
+                "canal de voz.",
+                ephemeral=True
+            )
+
+        except Exception as e:
+
+            print(
+                f"❌ Error al mover a {interaction.user}: {e}"
+            )
+
+            await interaction.response.send_message(
+                "❌ No se ha podido unir al canal.",
+                ephemeral=True
+            )
+
+
+# ============================================================
+# VIEW DEL BOTÓN
+# ============================================================
+
+class VistaUnirseVoz(discord.ui.View):
+
+    def __init__(self, canal_voz_id):
+
+        super().__init__(timeout=None)
+
+        self.add_item(
+            UnirseCanalVoz(canal_voz_id)
+        )
+
+
+# ============================================================
+# ENVIAR EMBED
+# ============================================================
+
+async def enviar_aviso_voz(canal_voz):
+
+    canal_general = bot.get_channel(
+        CANAL_GENERAL_ID
+    )
+
+    if canal_general is None:
+
+        print(
+            "❌ No se encontró el canal general"
+        )
+
+        return
+
+    # Personas reales conectadas
+    personas = [
+        m for m in canal_voz.members
+        if not m.bot
+    ]
+
+    if not personas:
+        return
+
+    # Crear lista de personas
+    lista_personas = "\n".join(
+        f"👤 {m.display_name}"
+        for m in personas
+    )
+
+    # Crear embed
+    embed = discord.Embed(
+        title="🎧 ¡Hay gente en voz!",
+        description=(
+            f"Hay gente conectada en "
+            f"**{canal_voz.name}**.\n\n"
+            f"👥 **{len(personas)} persona(s) conectada(s)**"
+        ),
+        color=discord.Color.green(),
+        timestamp=datetime.now(timezone.utc)
+    )
+
+    embed.add_field(
+        name="🎙️ Canal",
+        value=f"**{canal_voz.name}**",
+        inline=True
+    )
+
+    embed.add_field(
+        name="👥 Personas",
+        value=lista_personas,
+        inline=False
+    )
+
+    embed.set_footer(
+        text="Pulsa el botón para unirte"
+    )
+
+    # Enviar embed con botón
+    await canal_general.send(
+        content="@everyone",
+        embed=embed,
+        view=VistaUnirseVoz(canal_voz.id),
+        allowed_mentions=discord.AllowedMentions(
+            everyone=True
+        )
+    )
+
+    # Guardar hora del aviso
+    ultimos_avisos_voz[
+        canal_voz.id
+    ] = datetime.now(timezone.utc)
+
+    print(
+        f"📢 Aviso enviado para {canal_voz.name} "
+        f"({len(personas)} personas)"
+    )
+
+
+# ============================================================
+# DETECTAR ENTRADAS Y SALIDAS
+# ============================================================
+
 @bot.event
-async def on_voice_state_update(member, before, after):
-    # Ignorar al propio bot
+async def on_voice_state_update(
+    member,
+    before,
+    after
+):
+
+    # Ignorar bots
     if member.bot:
         return
 
-    # Solo nos interesa cuando alguien ENTRA a un canal
-    if before.channel is None and after.channel is not None:
+    # ========================================================
+    # ALGUIEN SALE DE UN CANAL
+    # ========================================================
+
+    if before.channel is not None:
+
+        personas_restantes = [
+            m for m in before.channel.members
+            if not m.bot
+        ]
+
+        # Si el canal queda vacío,
+        # reiniciamos el estado
+        if len(personas_restantes) == 0:
+
+            ultimos_avisos_voz.pop(
+                before.channel.id,
+                None
+            )
+
+            print(
+                f"🔄 {before.channel.name} "
+                f"quedó vacío."
+            )
+
+    # ========================================================
+    # ALGUIEN ENTRA A UN CANAL
+    # ========================================================
+
+    if after.channel is not None:
 
         canal_voz = after.channel
 
-        # Comprobar cuántas personas hay ahora mismo
-        personas = [m for m in canal_voz.members if not m.bot]
+        personas = [
+            m for m in canal_voz.members
+            if not m.bot
+        ]
 
-        # Si es la primera persona que entra
-        if len(personas) == 1:
+        if not personas:
+            return
 
-            ahora = datetime.now(timezone.utc)
-            ultimo_aviso = ultimos_avisos_voz.get(canal_voz.id)
+        # ====================================================
+        # CANAL NUEVO / ESTABA VACÍO
+        # ====================================================
 
-            # Si nunca hemos avisado, avisamos
-            # Si ya avisamos pero han pasado 30 minutos, volvemos a avisar
-            if (
-                ultimo_aviso is None
-                or (ahora - ultimo_aviso).total_seconds() >= TIEMPO_AVISO_VOZ
-            ):
+        if canal_voz.id not in ultimos_avisos_voz:
 
-                canal_general = bot.get_channel(CANAL_GENERAL_ID)
+            print(
+                f"🟢 Canal activado: "
+                f"{canal_voz.name}"
+            )
 
-                if canal_general:
-                    await canal_general.send(
-                        f"📢 @everyone **¡Hay gente en voz!**\n"
-                        f"🎧 El canal **{canal_voz.name}** está activo.\n"
-                        f"👥 **{len(personas)}** persona(s) conectada(s)."
-                    )
+            await enviar_aviso_voz(
+                canal_voz
+            )
 
-                    # Guardar cuándo se avisó
-                    ultimos_avisos_voz[canal_voz.id] = ahora
+            return
+
+        # ====================================================
+        # ALGUIEN NUEVO ENTRA A UN CANAL YA ACTIVO
+        # ====================================================
+
+        ultimo_aviso = ultimos_avisos_voz.get(
+            canal_voz.id
+        )
+
+        if ultimo_aviso is None:
+            return
+
+        ahora = datetime.now(timezone.utc)
+
+        tiempo = (
+            ahora - ultimo_aviso
+        ).total_seconds()
+
+        # Entrada nueva:
+        # avisar inmediatamente
+        await enviar_aviso_voz(
+            canal_voz
+        )
+
+
+# ============================================================
+# AVISOS AUTOMÁTICOS CADA 30 MINUTOS
+# ============================================================
+
+@tasks.loop(minutes=1)
+async def avisos_voz_periodicos():
+
+    canal_general = bot.get_channel(
+        CANAL_GENERAL_ID
+    )
+
+    if canal_general is None:
+        return
+
+    guild = canal_general.guild
+
+    ahora = datetime.now(timezone.utc)
+
+    for canal_voz in guild.voice_channels:
+
+        personas = [
+            m for m in canal_voz.members
+            if not m.bot
+        ]
+
+        # Canal vacío
+        if not personas:
+
+            ultimos_avisos_voz.pop(
+                canal_voz.id,
+                None
+            )
+
+            continue
+
+        ultimo_aviso = ultimos_avisos_voz.get(
+            canal_voz.id
+        )
+
+        # Nunca se ha avisado
+        if ultimo_aviso is None:
+
+            await enviar_aviso_voz(
+                canal_voz
+            )
+
+            continue
+
+        tiempo = (
+            ahora - ultimo_aviso
+        ).total_seconds()
+
+        # Han pasado 30 minutos
+        if tiempo >= TIEMPO_AVISO_VOZ:
+
+            await enviar_aviso_voz(
+                canal_voz
+            )
+
+async def comprobar_voz_al_iniciar():
+
+    canal_general = bot.get_channel(
+        CANAL_GENERAL_ID
+    )
+
+    if canal_general is None:
+        print("❌ No se encontró el canal general")
+        return
+
+    guild = canal_general.guild
+
+    for canal_voz in guild.voice_channels:
+
+        personas = [
+            m for m in canal_voz.members
+            if not m.bot
+        ]
+
+        if personas:
+
+            print(
+                f"🔄 Al iniciar: "
+                f"{canal_voz.name} tiene "
+                f"{len(personas)} personas."
+            )
+
+            await enviar_aviso_voz(
+                canal_voz
+            )
+
+@avisos_voz_periodicos.before_loop
+async def antes_avisos_voz():
+
+    await bot.wait_until_ready()
 
 
 # ----------------------------
