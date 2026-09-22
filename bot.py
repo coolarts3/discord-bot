@@ -75,15 +75,18 @@ async def aviso_automatico():
 # -----------------------------
 @bot.event
 async def on_ready():
-    print(f"✅ Bot conectado como {bot.user}")
+    print(f"🤖 Bot conectado como {bot.user}")
+
+    # Iniciar tu sistema de avisos automático
     if not aviso_automatico.is_running():
         aviso_automatico.start()
 
-if not avisos_voz_periodicos.is_running():
-    avisos_voz_periodicos.start()
+    # Iniciar los avisos de actividad en voz
+    if not avisos_voz_periodicos.is_running():
+        avisos_voz_periodicos.start()
 
-await comprobar_voz_al_iniciar()
-
+    # Comprobar si ya había gente conectada a voz
+    await comprobar_voz_al_iniciar()
 
 @bot.event
 async def on_message(message):
