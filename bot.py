@@ -874,6 +874,29 @@ async def secretcomando(ctx):
     await mensaje.delete()
 
 # ----------------------------
+# NOTIFICACIÓN AL ENTRAR A VOZ
+# ----------------------------
+
+CANAL_GENERAL_ID = 1437188675225124874  # 👈 Pon aquí la ID del canal general
+
+@bot.event
+async def on_voice_state_update(member, before, after):
+    # Ignorar al propio bot
+    if member.bot:
+        return
+
+    # Solo actuar cuando entra a un canal de voz
+    if before.channel is None and after.channel is not None:
+
+        canal_general = bot.get_channel(CANAL_GENERAL_ID)
+
+        if canal_general:
+            await canal_general.send(
+                f"📢 @everyone **{member.display_name}** se ha conectado al canal de voz "
+                f"🎧 **{after.channel.name}**"
+            )
+
+# ----------------------------
 # INICIAR BOT
 # ----------------------------
 bot.run(os.getenv("DISCORD_TOKEN"))
