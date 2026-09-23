@@ -968,8 +968,6 @@ class BotonNotificarLlamadas(
             timestamp=datetime.now(timezone.utc)
         )
 
-        await ctx.send(content="@everyone", embed=embed, allowed_mentions=allowed_mentions)
-
         total_personas = 0
 
         for llamada in llamadas:
@@ -999,6 +997,8 @@ class BotonNotificarLlamadas(
                 "Este mensaje se eliminará en 5 minutos."
             )
         )
+
+        await ctx.send(content="@everyone", embed=embed, allowed_mentions=allowed_mentions)
 
         await interaction.response.send_message(
             embed=embed
