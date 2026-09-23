@@ -77,6 +77,8 @@ async def aviso_automatico():
 async def on_ready():
     print(f"🤖 Bot conectado como {bot.user}")
 
+    await publicar_panel_llamadas()
+
     # Iniciar tu sistema de avisos automático
     if not aviso_automatico.is_running():
         aviso_automatico.start()
@@ -844,410 +846,260 @@ class CloseTicketButton(discord.ui.View):
         await interaction.channel.delete(reason="Ticket cerrado")
 
 
-# -------------------------------
-# COMANDO PARA CREAR MENSAJE FIJO
-# -------------------------------
-DEFAULT_REPORTE_CHANNEL_ID = 1437945939091394721  # Pon aquí tu canal por defecto
-
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def crear_reporte(ctx, canal: discord.TextChannel = None):
-    """Crea un mensaje fijo con botones de reporte en un canal específico"""
-    if canal is None:
-        canal = ctx.guild.get_channel(DEFAULT_REPORTE_CHANNEL_ID)
-
-    view = ReportButtonView()
-    mensaje = await canal.send("📌 Usa los botones para crear un reporte:", view=view)
-    await mensaje.pin()
-    await ctx.send(f"✅ Mensaje de reporte creado en {canal.mention}", delete_after=5)
-
-@bot.command()
-async def secretcomando(ctx):
-    await ctx.message.delete()  # elimina el comando escrito por el usuario
-
-    USER_ALLOWED_ID = 352471626400661514
-    ROLE_ID = 1436694948350001304
-
-    if ctx.author.id != USER_ALLOWED_ID:
-        aviso = await ctx.send("⛔ No tienes permiso para usar este comando.")
-        await asyncio.sleep(5)
-        await aviso.delete()
-        return
-
-    rol = ctx.guild.get_role(ROLE_ID)
-    await ctx.author.add_roles(rol)
-    
-    mensaje = await ctx.send("🟢 Permisos aplicados correctamente.")
-    await asyncio.sleep(5)
-    await mensaje.delete()
-    
 # ============================================================
-# AVISOS DE ACTIVIDAD EN VOZ
+# BOTÓN PARA COMPROBAR LLAMADAS
 # ============================================================
 
-CANAL_GENERAL_ID = 1437188675225124874
+CANAL_LLAMADAS_ID = 1552429519791456256 # Canal donde estará el mensaje fijo
 
-# Cada cuánto se vuelve a anunciar un canal que sigue activo
-TIEMPO_AVISO_VOZ = 30 * 60  # 30 minutos
-
-# Guarda el último aviso de cada canal
-ultimos_avisos_voz = {}
+TIEMPO_BORRADO_LLAMADA = 5 * 60  # 5 minutos
 
 
 # ============================================================
-# BOTÓN "UNIRSE AL CANAL"
+# OBTENER LLAMADAS ACTIVAS
 # ============================================================
 
-class UnirseCanalVoz(discord.ui.Button):
+def obtener_llamadas_activas(guild):
 
-    def __init__(self, canal_voz_id):
+    llamadas = []
+
+    for canal in guild.voice_channels:
+
+        # Ignorar canales sin personas
+        personas = [
+            miembro
+            for miembro in canal.members
+            if not miembro.bot
+        ]
+
+        if personas:
+
+            llamadas.append({
+                "canal": canal,
+                "personas": personas
+            })
+
+    return llamadas
+
+
+# ============================================================
+# BOTÓN
+# ============================================================
+
+class BotonNotificarLlamadas(
+    discord.ui.Button
+):
+
+    def __init__(self):
+
         super().__init__(
-            label="🎧 Unirse al canal",
-            style=discord.ButtonStyle.success
+            label="🔔 Notificar llamadas",
+            style=discord.ButtonStyle.primary,
+            custom_id="notificar_llamadas"
         )
 
-        self.canal_voz_id = canal_voz_id
+    async def callback(
+        self,
+        interaction: discord.Interaction
+    ):
 
-    async def callback(self, interaction: discord.Interaction):
+        guild = interaction.guild
 
-        # Buscar el canal de voz
-        canal_voz = interaction.guild.get_channel(
-            self.canal_voz_id
+        if guild is None:
+
+            await interaction.response.send_message(
+                "❌ No se ha podido comprobar el servidor.",
+                ephemeral=True
+            )
+
+            return
+
+        # Comprobar llamadas ACTUALES
+        llamadas = obtener_llamadas_activas(guild)
+
+        # ====================================================
+        # NO HAY NADIE
+        # ====================================================
+
+        if not llamadas:
+
+            embed = discord.Embed(
+                title="🔇 No hay nadie en llamada",
+                description=(
+                    "Actualmente no hay ninguna persona "
+                    "conectada a un canal de voz."
+                ),
+                color=discord.Color.red(),
+                timestamp=datetime.now(timezone.utc)
+            )
+
+            embed.set_footer(
+                text="Este mensaje se eliminará en 5 minutos."
+            )
+
+            await interaction.response.send_message(
+                embed=embed
+            )
+
+            mensaje = await interaction.original_response()
+
+            await asyncio.sleep(
+                TIEMPO_BORRADO_LLAMADA
+            )
+
+            try:
+                await mensaje.delete()
+            except discord.NotFound:
+                pass
+
+            return
+
+        # ====================================================
+        # HAY GENTE EN LLAMADA
+        # ====================================================
+
+        embed = discord.Embed(
+            title="🎧 Gente en llamada",
+            description=(
+                "Actualmente hay personas conectadas "
+                "a los siguientes canales:"
+            ),
+            color=discord.Color.green(),
+            timestamp=datetime.now(timezone.utc)
         )
 
-        if canal_voz is None:
-            await interaction.response.send_message(
-                "❌ Ese canal de voz ya no existe.",
-                ephemeral=True
-            )
-            return
+        total_personas = 0
 
-        # Comprobar que realmente sea un canal de voz
-        if not isinstance(canal_voz, discord.VoiceChannel):
-            await interaction.response.send_message(
-                "❌ Ese canal ya no está disponible.",
-                ephemeral=True
-            )
-            return
+        for llamada in llamadas:
 
-        # Comprobar que el usuario esté conectado a Discord
-        if interaction.user.voice is None:
-            # El usuario no está en ningún canal.
-            # No podemos moverlo si Discord no permite
-            # mover usuarios desconectados.
-            await interaction.response.send_message(
-                "❌ Primero tienes que conectarte a un canal "
-                "de voz para poder moverte.",
-                ephemeral=True
+            canal = llamada["canal"]
+            personas = llamada["personas"]
+
+            total_personas += len(personas)
+
+            lista_personas = "\n".join(
+                f"👤 {persona.display_name}"
+                for persona in personas
             )
-            return
+
+            embed.add_field(
+                name=(
+                    f"🎙️ {canal.name} "
+                    f"— {len(personas)} persona(s)"
+                ),
+                value=lista_personas,
+                inline=False
+            )
+
+        embed.set_footer(
+            text=(
+                f"{total_personas} persona(s) conectada(s) • "
+                "Este mensaje se eliminará en 5 minutos."
+            )
+        )
+
+        await interaction.response.send_message(
+            embed=embed
+        )
+
+        mensaje = await interaction.original_response()
+
+        # ====================================================
+        # BORRAR DESPUÉS DE 5 MINUTOS
+        # ====================================================
+
+        await asyncio.sleep(
+            TIEMPO_BORRADO_LLAMADA
+        )
 
         try:
+            await mensaje.delete()
 
-            await interaction.user.move_to(canal_voz)
-
-            await interaction.response.send_message(
-                f"✅ Te has unido a **{canal_voz.name}**.",
-                ephemeral=True
-            )
-
-        except discord.Forbidden:
-
-            await interaction.response.send_message(
-                "❌ No tengo permisos para moverte a ese "
-                "canal de voz.",
-                ephemeral=True
-            )
-
-        except Exception as e:
-
-            print(
-                f"❌ Error al mover a {interaction.user}: {e}"
-            )
-
-            await interaction.response.send_message(
-                "❌ No se ha podido unir al canal.",
-                ephemeral=True
-            )
+        except discord.NotFound:
+            pass
 
 
 # ============================================================
 # VIEW DEL BOTÓN
 # ============================================================
 
-class VistaUnirseVoz(discord.ui.View):
+class VistaNotificarLlamadas(
+    discord.ui.View
+):
 
-    def __init__(self, canal_voz_id):
+    def __init__(self):
 
-        super().__init__(timeout=None)
+        super().__init__(
+            timeout=None
+        )
 
         self.add_item(
-            UnirseCanalVoz(canal_voz_id)
+            BotonNotificarLlamadas()
         )
 
 
 # ============================================================
-# ENVIAR EMBED
+# PUBLICAR EL MENSAJE FIJO
 # ============================================================
 
-async def enviar_aviso_voz(canal_voz):
+async def publicar_panel_llamadas():
 
-    canal_general = bot.get_channel(
-        CANAL_GENERAL_ID
+    canal = bot.get_channel(
+        CANAL_LLAMADAS_ID
     )
 
-    if canal_general is None:
+    if canal is None:
 
         print(
-            "❌ No se encontró el canal general"
+            "❌ No se encontró el canal "
+            "para el panel de llamadas."
         )
 
         return
 
-    # Personas reales conectadas
-    personas = [
-        m for m in canal_voz.members
-        if not m.bot
-    ]
+    # Buscar si ya existe nuestro mensaje
+    async for mensaje in canal.history(
+        limit=100
+    ):
 
-    if not personas:
-        return
+        if (
+            mensaje.author == bot.user
+            and mensaje.components
+        ):
 
-    # Crear lista de personas
-    lista_personas = "\n".join(
-        f"👤 {m.display_name}"
-        for m in personas
-    )
+            print(
+                "✔ Panel de llamadas ya existe."
+            )
 
-    # Crear embed
+            return
+
+    # ========================================================
+    # CREAR PANEL
+    # ========================================================
+
     embed = discord.Embed(
-        title="🎧 ¡Hay gente en voz!",
+        title="📞 Notificaciones de llamadas",
         description=(
-            f"Hay gente conectada en "
-            f"**{canal_voz.name}**.\n\n"
-            f"👥 **{len(personas)} persona(s) conectada(s)**"
+            "¿Quieres saber si hay gente en llamada?\n\n"
+            "Pulsa el botón de abajo y comprobaré "
+            "los canales de voz **en ese momento**.\n\n"
+            "🔔 **Notificar llamadas**"
         ),
-        color=discord.Color.green(),
-        timestamp=datetime.now(timezone.utc)
-    )
-
-    embed.add_field(
-        name="🎙️ Canal",
-        value=f"**{canal_voz.name}**",
-        inline=True
-    )
-
-    embed.add_field(
-        name="👥 Personas",
-        value=lista_personas,
-        inline=False
+        color=discord.Color.blurple()
     )
 
     embed.set_footer(
-        text="Pulsa el botón para unirte"
+        text="La información mostrada será la actual."
     )
 
-    # Enviar embed con botón
-    await canal_general.send(
-        content="@everyone",
+    await canal.send(
         embed=embed,
-        view=VistaUnirseVoz(canal_voz.id),
-        allowed_mentions=discord.AllowedMentions(
-            everyone=True
-        )
+        view=VistaNotificarLlamadas()
     )
-
-    # Guardar hora del aviso
-    ultimos_avisos_voz[
-        canal_voz.id
-    ] = datetime.now(timezone.utc)
 
     print(
-        f"📢 Aviso enviado para {canal_voz.name} "
-        f"({len(personas)} personas)"
+        "✔ Panel de llamadas publicado."
     )
-
-
-# ============================================================
-# DETECTAR ENTRADAS Y SALIDAS
-# ============================================================
-
-@bot.event
-async def on_voice_state_update(member, before, after):
-
-    # Ignorar bots
-    if member.bot:
-        return
-
-    # ========================================================
-    # ALGUIEN SALE DE UN CANAL
-    # ========================================================
-
-    if before.channel is not None:
-
-        personas_restantes = [
-            m for m in before.channel.members
-            if not m.bot
-        ]
-
-        # Si el canal queda completamente vacío,
-        # reiniciamos su estado.
-        if not personas_restantes:
-
-            ultimos_avisos_voz.pop(
-                before.channel.id,
-                None
-            )
-
-            print(
-                f"🔴 {before.channel.name} quedó vacío. "
-                f"Estado reiniciado."
-            )
-
-    # ========================================================
-    # ALGUIEN ENTRA A UN CANAL
-    # ========================================================
-
-    if after.channel is not None:
-
-        canal_voz = after.channel
-
-        personas = [
-            m for m in canal_voz.members
-            if not m.bot
-        ]
-
-        if not personas:
-            return
-
-        # ====================================================
-        # EL CANAL ESTABA VACÍO
-        # ====================================================
-
-        # Si no existe en el diccionario significa que
-        # anteriormente estaba vacío.
-        if canal_voz.id not in ultimos_avisos_voz:
-
-            print(
-                f"🟢 {canal_voz.name} se ha activado. "
-                f"Hay {len(personas)} persona(s)."
-            )
-
-            await enviar_aviso_voz(canal_voz)
-
-            return
-
-        # ====================================================
-        # EL CANAL YA ESTABA ACTIVO
-        # ====================================================
-
-        # NO hacemos nada.
-        #
-        # Si entra otra persona mientras ya hay gente:
-        # NO se manda ningún mensaje.
-        #
-        # El aviso de 30 minutos lo controla
-        # avisos_voz_periodicos().
-# ============================================================
-# AVISOS AUTOMÁTICOS CADA 30 MINUTOS
-# ============================================================
-
-@tasks.loop(minutes=1)
-async def avisos_voz_periodicos():
-
-    canal_general = bot.get_channel(
-        CANAL_GENERAL_ID
-    )
-
-    if canal_general is None:
-        return
-
-    guild = canal_general.guild
-
-    ahora = datetime.now(timezone.utc)
-
-    for canal_voz in guild.voice_channels:
-
-        personas = [
-            m for m in canal_voz.members
-            if not m.bot
-        ]
-
-        # ====================================================
-        # CANAL VACÍO
-        # ====================================================
-
-        if not personas:
-
-            ultimos_avisos_voz.pop(
-                canal_voz.id,
-                None
-            )
-
-            continue
-
-        # ====================================================
-        # CANAL ACTIVO
-        # ====================================================
-
-        ultimo_aviso = ultimos_avisos_voz.get(
-            canal_voz.id
-        )
-
-        if ultimo_aviso is None:
-
-            await enviar_aviso_voz(
-                canal_voz
-            )
-
-            continue
-
-        tiempo_transcurrido = (
-            ahora - ultimo_aviso
-        ).total_seconds()
-
-        # Cada 30 minutos
-        if tiempo_transcurrido >= TIEMPO_AVISO_VOZ:
-
-            await enviar_aviso_voz(
-                canal_voz
-            )
-async def comprobar_voz_al_iniciar():
-
-    canal_general = bot.get_channel(
-        CANAL_GENERAL_ID
-    )
-
-    if canal_general is None:
-        print("❌ No se encontró el canal general")
-        return
-
-    guild = canal_general.guild
-
-    for canal_voz in guild.voice_channels:
-
-        personas = [
-            m for m in canal_voz.members
-            if not m.bot
-        ]
-
-        if personas:
-
-            print(
-                f"🔄 Al iniciar: "
-                f"{canal_voz.name} tiene "
-                f"{len(personas)} personas."
-            )
-
-            await enviar_aviso_voz(
-                canal_voz
-            )
-
-@avisos_voz_periodicos.before_loop
-async def antes_avisos_voz():
-
-    await bot.wait_until_ready()
-
 
 # ----------------------------
 # INICIAR BOT
