@@ -959,7 +959,7 @@ class BotonNotificarLlamadas(
         # ====================================================
 
         embed = discord.Embed(
-            title="🎧 Gente en llamada @everyone",
+            title="🎧 Gente en llamada",
             description=(
                 "Actualmente hay personas conectadas "
                 "a los siguientes canales:"
@@ -967,6 +967,8 @@ class BotonNotificarLlamadas(
             color=discord.Color.green(),
             timestamp=datetime.now(timezone.utc)
         )
+
+        await ctx.send(content="@everyone", embed=embed, allowed_mentions=allowed_mentions)
 
         total_personas = 0
 
