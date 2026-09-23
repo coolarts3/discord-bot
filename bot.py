@@ -998,7 +998,12 @@ class BotonNotificarLlamadas(
             )
         )
 
-        await ctx.send(content="@everyone", embed=embed, allowed_mentions=allowed_mentions)
+        await interaction.response.send_message(
+            content="@everyone",
+            embed=embed,
+            allowed_mentions=allowed_mentions,
+            delete_after=300
+        )
 
         await interaction.response.send_message(
             embed=embed
