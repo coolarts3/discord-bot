@@ -998,6 +998,8 @@ class BotonNotificarLlamadas(
             )
         )
 
+        allowed_mentions = discord.AllowedMentions(everyone=True)
+
         await interaction.response.send_message(
             content="@everyone",
             embed=embed,
