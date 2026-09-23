@@ -846,6 +846,43 @@ class CloseTicketButton(discord.ui.View):
         await interaction.channel.delete(reason="Ticket cerrado")
 
 
+DEFAULT_REPORTE_CHANNEL_ID = 1437945939091394721
+
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def crear_reporte(ctx, canal: discord.TextChannel = None):
+    """Crea el panel de tickets/reportes."""
+
+    if canal is None:
+        canal = ctx.guild.get_channel(DEFAULT_REPORTE_CHANNEL_ID)
+
+    if canal is None:
+        await ctx.send(
+            "❌ No se encontró el canal de reportes.",
+            delete_after=5
+        )
+        return
+
+    view = ReportButtonView()
+
+    mensaje = await canal.send(
+        "📌 **Sistema de soporte**\n\n"
+        "Selecciona una opción para abrir un ticket:",
+        view=view
+    )
+
+    try:
+        await mensaje.pin()
+    except discord.Forbidden:
+        pass
+
+    await ctx.send(
+        f"✅ Panel de tickets creado en {canal.mention}",
+        delete_after=5
+    )
+
+
 # ============================================================
 # BOTÓN PARA COMPROBAR LLAMADAS
 # ============================================================
