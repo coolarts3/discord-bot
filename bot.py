@@ -959,7 +959,7 @@ class BotonNotificarLlamadas(
         # ====================================================
 
         embed = discord.Embed(
-            title="🎧 Gente en llamada",
+            title="🎧 Gente en llamada @everyone",
             description=(
                 "Actualmente hay personas conectadas "
                 "a los siguientes canales:"
