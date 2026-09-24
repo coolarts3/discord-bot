@@ -41,6 +41,8 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
+
+
 CANAL_AVISO_ID = 1437188675225124874  # reemplaza con tu canal
 TIEMPO_ESPERA = 5  # minutos
 last_activity = None
@@ -1123,25 +1125,70 @@ async def antes_de_actualizaciones_valorant():
 # -----------------------------
 @bot.event
 async def on_ready():
+
     print(f"🤖 Bot conectado como {bot.user}")
+
+    # ========================================================
+    # 🔘 REGISTRAR BOTONES PERSISTENTES
+    # ========================================================
 
     bot.add_view(BienvenidaView())
 
+    bot.add_view(
+        ValorantLFGView()
+    )
+
+    bot.add_view(
+        ValorantCrearPartidaView()
+    )
+
+    # ========================================================
+    # 📞 SISTEMA DE LLAMADAS
+    # ========================================================
+
     await publicar_panel_llamadas()
+
+    # ========================================================
+    # 📢 AVISOS AUTOMÁTICOS
+    # ========================================================
 
     if not aviso_automatico.is_running():
         aviso_automatico.start()
 
+    # ========================================================
+    # 📰 NOTICIAS VALORANT
+    # ========================================================
+
     if not actualizaciones_valorant.is_running():
         actualizaciones_valorant.start()
 
+    # ========================================================
+    # 🎮 PANELES VALORANT
+    # ========================================================
+
+    await publicar_paneles_valorant()
+
+    # ========================================================
+    # 🔊 COMPROBAR VOZ
+    # ========================================================
+
     await comprobar_voz_al_iniciar()
-    
 
 #CREACION DE PARTIDAS POR ROL
 
 # ID del canal donde se puede usar este comando
-LFG_CHANNEL_ID = 1437833190076317806  # Reemplaza con el ID del canal de LFG
+# ============================================================
+# 🎮 PANELES DE VALORANT
+# ============================================================
+
+VALORANT_LFG_CHANNEL_ID = 1552822496275861626
+VALORANT_PARTIDAS_CHANNEL_ID = 1437551679770857542
+
+VALORANT_LFG_PANEL_TITLE = "🎮 VALORANT • BUSCAR JUGADORES"
+VALORANT_PARTIDA_PANEL_TITLE = "🎮 VALORANT • CREAR PARTIDA"
+
+VALORANT_LFG_CUSTOM_ID = "valorant_lfg_button"
+VALORANT_PARTIDA_CUSTOM_ID = "valorant_crear_partida_button"
 
 @bot.command()
 async def lfg(ctx, juego: str = None, jugadores: str = None):
@@ -1176,6 +1223,512 @@ async def lfg(ctx, juego: str = None, jugadores: str = None):
 
     # Llamar a la función que maneja la búsqueda de grupo
     await buscar_grupo(ctx, juego, jugadores)
+
+# ============================================================
+# 🎮 BUSCAR GRUPO DE VALORANT DESDE BOTÓN
+# ============================================================
+
+async def buscar_grupo_valorant(interaction, jugadores: int):
+
+    canal = interaction.channel
+
+    anuncio = await canal.send(
+        f"🎮 **{interaction.user.display_name}** busca grupo de "
+        f"**{jugadores}** personas para **VALORANT**.\n"
+        f"Reacciona con 🎮 para unirte a la espera.",
+        delete_after=300
+    )
+
+    await anuncio.add_reaction("🎮")
+
+    jugadores_actuales = [interaction.user]
+
+    def check_reaction(reaction, user):
+        return (
+            reaction.message.id == anuncio.id
+            and str(reaction.emoji) == "🎮"
+            and user not in jugadores_actuales
+            and not user.bot
+        )
+
+    while len(jugadores_actuales) < jugadores:
+
+        try:
+            reaction, user = await bot.wait_for(
+                "reaction_add",
+                timeout=300.0,
+                check=check_reaction
+            )
+
+        except asyncio.TimeoutError:
+
+            try:
+                await anuncio.delete()
+            except Exception:
+                pass
+
+            return
+
+        else:
+
+            jugadores_actuales.append(user)
+
+            msg = await canal.send(
+                f"✅ {user.display_name} se ha unido "
+                f"({len(jugadores_actuales)}/{jugadores})"
+            )
+
+            await asyncio.sleep(3)
+
+            try:
+                await msg.delete()
+            except Exception:
+                pass
+
+    # ========================================================
+    # PARTIDA COMPLETA
+    # ========================================================
+
+    menciones = " ".join(
+        usuario.mention
+        for usuario in jugadores_actuales
+    )
+
+    await canal.send(
+        f"🎉 **¡Grupo completo para VALORANT!**\n\n"
+        f"{menciones}\n\n"
+        f"👥 **Jugadores:** {len(jugadores_actuales)}/{jugadores}"
+    )
+
+    try:
+        await anuncio.delete()
+    except Exception:
+        pass
+
+
+# ============================================================
+# 🎮 POPUP BUSCAR JUGADORES VALORANT
+# ============================================================
+
+class ValorantLFGModal(discord.ui.Modal, title="🎮 Buscar jugadores - VALORANT"):
+
+    jugadores = discord.ui.TextInput(
+        label="¿Cuántos jugadores necesitáis?",
+        placeholder="Ejemplo: 5",
+        required=True,
+        min_length=1,
+        max_length=2
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+
+        try:
+            cantidad = int(self.jugadores.value)
+
+            if cantidad < 2:
+                raise ValueError
+
+        except ValueError:
+
+            await interaction.response.send_message(
+                "❌ Debes introducir un número entero de jugadores igual o superior a 2.",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.send_message(
+            f"🔎 Buscando **{cantidad} jugadores** para VALORANT...",
+            ephemeral=True
+        )
+
+        await buscar_grupo_valorant(
+            interaction,
+            cantidad
+        )
+
+
+# ============================================================
+# 🎮 BOTÓN LFG VALORANT
+# ============================================================
+
+class ValorantLFGView(discord.ui.View):
+
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Buscar jugadores",
+        emoji="🎮",
+        style=discord.ButtonStyle.green,
+        custom_id=VALORANT_LFG_CUSTOM_ID
+    )
+    async def buscar_jugadores(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+
+        if interaction.channel.id != VALORANT_LFG_CHANNEL_ID:
+
+            await interaction.response.send_message(
+                "❌ Este botón no se puede utilizar en este canal.",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.send_modal(
+            ValorantLFGModal()
+        )
+
+
+# ============================================================
+# 🎮 CREAR PARTIDA DE VALORANT
+# ============================================================
+
+async def crear_partida_valorant(interaction):
+
+    guild = interaction.guild
+
+    if guild is None:
+        await interaction.response.send_message(
+            "❌ No se ha podido encontrar el servidor.",
+            ephemeral=True
+        )
+        return
+
+    categoria = discord.utils.get(
+        guild.categories,
+        name="𝓟𝓐𝓡𝓣𝓘𝓓𝓐𝓢 🖱️"
+    )
+
+    if categoria is None:
+
+        await interaction.response.send_message(
+            "❌ No existe la categoría `𝓟𝓐𝓡𝓣𝓘𝓓𝓐𝓢 🖱️`.",
+            ephemeral=True
+        )
+        return
+
+    try:
+
+        # ====================================================
+        # 🎧 CREAR VOZ
+        # ====================================================
+
+        voice_channel = await guild.create_voice_channel(
+            name=f"🎮│Partida de {interaction.user.name}",
+            category=categoria,
+            user_limit=5
+        )
+
+        # ====================================================
+        # 💬 CREAR CHAT
+        # ====================================================
+
+        text_channel = await guild.create_text_channel(
+            name=f"💬│chat-{interaction.user.name}",
+            category=categoria
+        )
+
+        # ====================================================
+        # 🔐 PERMISOS
+        # ====================================================
+
+        await voice_channel.set_permissions(
+            interaction.user,
+            connect=True,
+            manage_channels=True
+        )
+
+        await text_channel.set_permissions(
+            interaction.user,
+            send_messages=True,
+            read_messages=True
+        )
+
+        # ====================================================
+        # 📩 AVISAR AL USUARIO
+        # ====================================================
+
+        await interaction.response.send_message(
+            f"✅ **Partida de VALORANT creada correctamente.**\n\n"
+            f"🎧 {voice_channel.mention}\n"
+            f"💬 {text_channel.mention}",
+            ephemeral=True
+        )
+
+        # ====================================================
+        # 🗑️ ELIMINAR CUANDO LA VOZ QUEDE VACÍA
+        # ====================================================
+
+        while True:
+
+            await asyncio.sleep(10)
+
+            # Comprobar que el canal sigue existiendo
+            try:
+                miembros = len(voice_channel.members)
+            except Exception:
+                break
+
+            if miembros == 0:
+
+                try:
+                    await text_channel.delete()
+                except discord.Forbidden:
+                    pass
+                except Exception:
+                    pass
+
+                try:
+                    await voice_channel.delete()
+                except discord.Forbidden:
+                    pass
+                except Exception:
+                    pass
+
+                print(
+                    f"🗑️ Canales de partida de "
+                    f"{interaction.user.name} eliminados automáticamente."
+                )
+
+                break
+
+    except Exception as e:
+
+        print(
+            f"❌ Error creando partida de VALORANT: "
+            f"{type(e).__name__}: {e}"
+        )
+
+        if not interaction.response.is_done():
+
+            await interaction.response.send_message(
+                f"❌ No se ha podido crear la partida:\n"
+                f"`{type(e).__name__}: {e}`",
+                ephemeral=True
+            )
+
+
+# ============================================================
+# 🎮 POPUP CONFIRMAR PARTIDA
+# ============================================================
+
+class ValorantCrearPartidaModal(
+    discord.ui.Modal,
+    title="🎮 Crear partida - VALORANT"
+):
+
+    confirmacion = discord.ui.TextInput(
+        label="Escribe CREAR para confirmar",
+        placeholder="CREAR",
+        required=True,
+        min_length=5,
+        max_length=5
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+
+        if self.confirmacion.value.strip().upper() != "CREAR":
+
+            await interaction.response.send_message(
+                "❌ Debes escribir `CREAR` para confirmar.",
+                ephemeral=True
+            )
+            return
+
+        await crear_partida_valorant(interaction)
+
+
+# ============================================================
+# 🎮 BOTÓN CREAR PARTIDA VALORANT
+# ============================================================
+
+class ValorantCrearPartidaView(discord.ui.View):
+
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Crear partida",
+        emoji="🎮",
+        style=discord.ButtonStyle.blurple,
+        custom_id=VALORANT_PARTIDA_CUSTOM_ID
+    )
+    async def crear_partida(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+
+        if interaction.channel.id != VALORANT_PARTIDAS_CHANNEL_ID:
+
+            await interaction.response.send_message(
+                "❌ Este botón no se puede utilizar en este canal.",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.send_modal(
+            ValorantCrearPartidaModal()
+        )
+
+
+# ============================================================
+# 📌 EMBED PANEL LFG
+# ============================================================
+
+def crear_embed_panel_lfg_valorant():
+
+    embed = discord.Embed(
+        title="🎮 VALORANT • BUSCAR JUGADORES",
+        description=(
+            "¿Buscas gente para jugar a VALORANT?\n\n"
+            "Pulsa el botón de abajo y dinos cuántos jugadores "
+            "necesitas para formar el grupo.\n\n"
+            "🎮 **Buscar jugadores**"
+        ),
+        color=discord.Color.red()
+    )
+
+    embed.set_footer(
+        text="VALORANT • Sistema LFG"
+    )
+
+    return embed
+
+
+# ============================================================
+# 📌 EMBED PANEL CREAR PARTIDA
+# ============================================================
+
+def crear_embed_panel_partida_valorant():
+
+    embed = discord.Embed(
+        title="🎮 VALORANT • CREAR PARTIDA",
+        description=(
+            "¿Quieres crear una partida de VALORANT?\n\n"
+            "Pulsa el botón de abajo para crear automáticamente "
+            "tu canal de voz y tu chat privado.\n\n"
+            "🎮 **Crear partida**\n\n"
+            "La partida se eliminará automáticamente cuando "
+            "el canal de voz quede vacío."
+        ),
+        color=discord.Color.red()
+    )
+
+    embed.set_footer(
+        text="VALORANT • Sistema de partidas"
+    )
+
+    return embed
+
+
+# ============================================================
+# 📌 PUBLICAR / RECUPERAR PANELES DE VALORANT
+# ============================================================
+
+async def publicar_paneles_valorant():
+
+    # ========================================================
+    # 🎮 PANEL LFG
+    # ========================================================
+
+    canal_lfg = bot.get_channel(
+        VALORANT_LFG_CHANNEL_ID
+    )
+
+    if canal_lfg is None:
+
+        print(
+            f"❌ No encuentro el canal LFG de VALORANT: "
+            f"{VALORANT_LFG_CHANNEL_ID}"
+        )
+
+    else:
+
+        panel_lfg_encontrado = False
+
+        try:
+
+            async for mensaje in canal_lfg.history(limit=50):
+
+                if (
+                    mensaje.author == bot.user
+                    and mensaje.embeds
+                    and mensaje.embeds[0].title
+                    == VALORANT_LFG_PANEL_TITLE
+                ):
+
+                    panel_lfg_encontrado = True
+                    break
+
+        except Exception as e:
+
+            print(
+                f"❌ Error buscando panel LFG: {e}"
+            )
+
+        if not panel_lfg_encontrado:
+
+            await canal_lfg.send(
+                embed=crear_embed_panel_lfg_valorant(),
+                view=ValorantLFGView()
+            )
+
+            print(
+                "✅ Panel LFG de VALORANT creado."
+            )
+
+    # ========================================================
+    # 🎮 PANEL CREAR PARTIDA
+    # ========================================================
+
+    canal_partidas = bot.get_channel(
+        VALORANT_PARTIDAS_CHANNEL_ID
+    )
+
+    if canal_partidas is None:
+
+        print(
+            f"❌ No encuentro el canal de partidas de VALORANT: "
+            f"{VALORANT_PARTIDAS_CHANNEL_ID}"
+        )
+
+    else:
+
+        panel_partida_encontrado = False
+
+        try:
+
+            async for mensaje in canal_partidas.history(limit=50):
+
+                if (
+                    mensaje.author == bot.user
+                    and mensaje.embeds
+                    and mensaje.embeds[0].title
+                    == VALORANT_PARTIDA_PANEL_TITLE
+                ):
+
+                    panel_partida_encontrado = True
+                    break
+
+        except Exception as e:
+
+            print(
+                f"❌ Error buscando panel de partidas: {e}"
+            )
+
+        if not panel_partida_encontrado:
+
+            await canal_partidas.send(
+                embed=crear_embed_panel_partida_valorant(),
+                view=ValorantCrearPartidaView()
+            )
+
+            print(
+                "✅ Panel de partidas de VALORANT creado."
+            )
 
 
 async def buscar_grupo(ctx, juego: str, jugadores: int):
