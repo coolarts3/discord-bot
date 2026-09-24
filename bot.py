@@ -12,9 +12,10 @@ import asyncio
 import imageio_ffmpeg as ffmpeg
 from datetime import datetime, timedelta
 from datetime import timezone
-import aiohttp
 import re
 import json
+import aiohttp
+from bs4 import BeautifulSoup
 
 SPOTIFY_CLIENT_ID = "1e5de19a89e2457aa31ddf0f2cad11b6"
 SPOTIFY_CLIENT_SECRET = "d5c34f121bf4417a8071516e5447cdbf"
@@ -44,244 +45,6 @@ CANAL_AVISO_ID = 1437188675225124874  # reemplaza con tu canal
 TIEMPO_ESPERA = 5  # minutos
 last_activity = None
 
-# ============================================================
-# 🎮 ACTUALIZACIONES AUTOMÁTICAS DE VALORANT
-# ============================================================
-
-VALORANT_CHANNEL_NAME = "📰・valorant-news"
-VALORANT_URL = "https://playvalorant.com/es-es/news/game-updates/"
-VALORANT_CHECK_MINUTES = 15
-
-VALORANT_FILE = "valorant_news.json"
-
-
-def cargar_valorant_news():
-    """Carga las noticias que ya hemos enviado."""
-    try:
-        with open(VALORANT_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
-
-
-def guardar_valorant_news(noticias):
-    """Guarda las noticias enviadas."""
-    with open(VALORANT_FILE, "w", encoding="utf-8") as f:
-        json.dump(noticias, f, ensure_ascii=False, indent=2)
-
-
-async def obtener_actualizaciones_valorant():
-    """Obtiene las últimas publicaciones de la web oficial de VALORANT."""
-
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
-
-    try:
-        timeout = aiohttp.ClientTimeout(total=20)
-
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(
-                VALORANT_URL,
-                headers=headers
-            ) as response:
-
-                if response.status != 200:
-                    print(
-                        f"⚠️ VALORANT: HTTP {response.status}"
-                    )
-                    return []
-
-                html = await response.text()
-
-        # Buscar enlaces de las publicaciones
-        patron = r'href="(/es-es/news/game-updates/[^"]+)"'
-        enlaces = re.findall(patron, html)
-
-        resultados = []
-        vistos = set()
-
-        for enlace in enlaces:
-
-            if enlace in vistos:
-                continue
-
-            vistos.add(enlace)
-
-            url = "https://playvalorant.com" + enlace
-
-            # Sacar un título aproximado del enlace
-            slug = enlace.rstrip("/").split("/")[-1]
-
-            titulo = slug.replace("-", " ").replace("_", " ").strip()
-
-            titulo = titulo.title()
-
-            resultados.append({
-                "url": url,
-                "titulo": titulo
-            })
-
-        return resultados[:10]
-
-    except Exception as e:
-        print(
-            f"⚠️ Error comprobando actualizaciones de VALORANT: {e}"
-        )
-        return []
-
-
-async def obtener_canal_valorant():
-    """Busca o crea el canal de noticias de VALORANT."""
-
-    for guild in bot.guilds:
-
-        canal = discord.utils.get(
-            guild.text_channels,
-            name=VALORANT_CHANNEL_NAME
-        )
-
-        if canal:
-            return canal
-
-    # Si no existe, crearlo en el primer servidor
-    if bot.guilds:
-
-        guild = bot.guilds[0]
-
-        try:
-            canal = await guild.create_text_channel(
-                VALORANT_CHANNEL_NAME
-            )
-
-            print(
-                f"✅ Canal de VALORANT creado: {canal.name}"
-            )
-
-            return canal
-
-        except Exception as e:
-            print(
-                f"❌ No se pudo crear el canal de VALORANT: {e}"
-            )
-
-    return None
-
-
-@tasks.loop(minutes=VALORANT_CHECK_MINUTES)
-async def actualizaciones_valorant():
-
-    canal = await obtener_canal_valorant()
-
-    if not canal:
-        return
-
-    noticias = await obtener_actualizaciones_valorant()
-
-    if not noticias:
-        return
-
-    noticias_enviadas = cargar_valorant_news()
-
-    # Detectar únicamente noticias nuevas
-    nuevas = [
-        noticia
-        for noticia in noticias
-        if noticia["url"] not in noticias_enviadas
-    ]
-
-    # Si es la primera ejecución, enviamos la noticia más reciente
-    # y guardamos el resto para evitar spam.
-    if not noticias_enviadas:
-
-        noticia = nuevas[0]
-
-        embed = discord.Embed(
-            title="🎮 Nueva actualización de VALORANT",
-            description=(
-                f"**{noticia['titulo']}**\n\n"
-                "Ya está disponible una nueva publicación "
-                "oficial de VALORANT."
-            ),
-            color=discord.Color.red(),
-            url=noticia["url"]
-        )
-
-        embed.add_field(
-            name="🔗 Notas completas",
-            value=f"[Leer en la web oficial]({noticia['url']})",
-            inline=False
-        )
-
-        embed.set_footer(
-            text="VALORANT • Actualizaciones oficiales"
-        )
-
-        try:
-            await canal.send(embed=embed)
-
-            print(
-                f"📰 Publicada actualización de VALORANT: "
-                f"{noticia['titulo']}"
-            )
-
-        except Exception as e:
-            print(
-                f"❌ Error enviando actualización de VALORANT: {e}"
-            )
-
-        # Guardar todas las actuales como vistas
-        guardar_valorant_news(
-            [n["url"] for n in noticias]
-        )
-
-        return
-
-    # Publicar únicamente las nuevas
-    for noticia in reversed(nuevas):
-
-        embed = discord.Embed(
-            title="🎮 Nueva actualización de VALORANT",
-            description=(
-                f"**{noticia['titulo']}**\n\n"
-                "Riot Games ha publicado una nueva "
-                "actualización oficial de VALORANT."
-            ),
-            color=discord.Color.red(),
-            url=noticia["url"]
-        )
-
-        embed.add_field(
-            name="🔗 Leer actualización",
-            value=f"[Abrir publicación oficial]({noticia['url']})",
-            inline=False
-        )
-
-        embed.set_footer(
-            text="VALORANT • playvalorant.com"
-        )
-
-        try:
-            await canal.send(embed=embed)
-
-            print(
-                f"📰 Nueva actualización publicada: "
-                f"{noticia['titulo']}"
-            )
-
-            noticias_enviadas.append(noticia["url"])
-
-        except Exception as e:
-            print(
-                f"❌ Error enviando noticia: {e}"
-            )
-
-    guardar_valorant_news(noticias_enviadas)
-
-
-@actualizaciones_valorant.before_loop
-async def antes_actualizaciones_valorant():
-    await bot.wait_until_ready()
 
 # -----------------------------
 # Detectar actividad
@@ -312,6 +75,261 @@ async def aviso_automatico():
             except Exception as e:
                 print(f"⚠️ Error al enviar aviso: {e}")
 
+# ============================================================
+# 📰 NOTICIAS / ACTUALIZACIONES DE VALORANT
+# ============================================================
+
+VALORANT_NEWS_URL = "https://playvalorant.com/es-es/news/game-updates/"
+VALORANT_CHANNEL_NAME = "📰 │ 𝙑𝘼𝙇𝙊𝙍𝘼𝙉𝙏-𝙉𝙀𝙒𝙎"
+VALORANT_CHECK_MINUTES = 10
+VALORANT_NEWS_FILE = "valorant_news.json"
+
+
+def cargar_noticias_valorant():
+    if not os.path.exists(VALORANT_NEWS_FILE):
+        return []
+
+    try:
+        with open(VALORANT_NEWS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def guardar_noticias_valorant(noticias):
+    with open(VALORANT_NEWS_FILE, "w", encoding="utf-8") as f:
+        json.dump(noticias, f, ensure_ascii=False, indent=4)
+
+
+async def obtener_noticias_valorant():
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    try:
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.get(
+                VALORANT_NEWS_URL,
+                timeout=aiohttp.ClientTimeout(total=20)
+            ) as response:
+
+                if response.status != 200:
+                    print(
+                        f"⚠️ VALORANT respondió con HTTP {response.status}"
+                    )
+                    return []
+
+                html = await response.text()
+
+        soup = BeautifulSoup(html, "html.parser")
+
+        noticias = []
+
+        # Buscar los enlaces de las actualizaciones
+        for enlace in soup.find_all("a", href=True):
+
+            href = enlace.get("href", "")
+
+            if "/es-es/news/game-updates/" not in href:
+                continue
+
+            if href.rstrip("/") == "/es-es/news/game-updates":
+                continue
+
+            url = (
+                "https://playvalorant.com" + href
+                if href.startswith("/")
+                else href
+            )
+
+            # Evitar duplicados
+            if any(n["url"] == url for n in noticias):
+                continue
+
+            # Buscar título
+            titulo = enlace.get_text(" ", strip=True)
+
+            if not titulo:
+                titulo = "Nueva actualización de VALORANT"
+
+            # Buscar imagen dentro de la tarjeta
+            imagen = None
+
+            img = enlace.find("img")
+
+            if img:
+                imagen = (
+                    img.get("src")
+                    or img.get("data-src")
+                    or img.get("data-lazy-src")
+                )
+
+            # Buscar contenedor de la noticia
+            contenedor = enlace
+
+            for _ in range(5):
+                if contenedor.parent:
+                    contenedor = contenedor.parent
+
+                    texto = contenedor.get_text(
+                        " ",
+                        strip=True
+                    )
+
+                    if len(texto) > len(titulo) + 30:
+                        break
+
+            texto_completo = contenedor.get_text(
+                " ",
+                strip=True
+            )
+
+            # Intentar encontrar la descripción
+            descripcion = ""
+
+            for tag in contenedor.find_all(
+                ["p", "div", "span"]
+            ):
+                texto = tag.get_text(
+                    " ",
+                    strip=True
+                )
+
+                if (
+                    len(texto) > 30
+                    and texto != titulo
+                    and "Actualizaciones del juego" not in texto
+                ):
+                    descripcion = texto
+                    break
+
+            if not descripcion:
+                descripcion = (
+                    "Nueva actualización publicada "
+                    "por VALORANT."
+                )
+
+            # Limitar la descripción para Discord
+            if len(descripcion) > 500:
+                descripcion = descripcion[:497] + "..."
+
+            noticias.append({
+                "url": url,
+                "titulo": titulo,
+                "descripcion": descripcion,
+                "imagen": imagen
+            })
+
+        return noticias
+
+    except Exception as e:
+        print(
+            f"❌ Error obteniendo noticias de VALORANT: {e}"
+        )
+        return []
+
+
+def obtener_canal_valorant():
+    for guild in bot.guilds:
+        canal = discord.utils.get(
+            guild.text_channels,
+            name=VALORANT_CHANNEL_NAME
+        )
+
+        if canal:
+            return canal
+
+    return None
+
+
+@tasks.loop(minutes=VALORANT_CHECK_MINUTES)
+async def actualizaciones_valorant():
+
+    canal = obtener_canal_valorant()
+
+    if canal is None:
+        print(
+            f"⚠️ No existe el canal "
+            f"{VALORANT_CHANNEL_NAME}"
+        )
+        return
+
+    noticias = await obtener_noticias_valorant()
+
+    if not noticias:
+        return
+
+    noticias_publicadas = cargar_noticias_valorant()
+
+    # Primera ejecución:
+    # guardar las noticias existentes sin llenar Discord
+    if not noticias_publicadas:
+
+        guardar_noticias_valorant(
+            [n["url"] for n in noticias]
+        )
+
+        print(
+            "📰 VALORANT: noticias iniciales guardadas."
+        )
+
+        return
+
+    nuevas = [
+        noticia
+        for noticia in noticias
+        if noticia["url"] not in noticias_publicadas
+    ]
+
+    if not nuevas:
+        return
+
+    for noticia in reversed(nuevas):
+
+        embed = discord.Embed(
+            title=f"📰 {noticia['titulo']}",
+            description=noticia["descripcion"],
+            url=noticia["url"],
+            color=discord.Color.red()
+        )
+
+        embed.set_author(
+            name="VALORANT"
+        )
+
+        if noticia["imagen"]:
+            embed.set_image(
+                url=noticia["imagen"]
+            )
+
+        embed.set_footer(
+            text="VALORANT • Actualizaciones del juego"
+        )
+
+        try:
+            await canal.send(
+                embed=embed
+            )
+
+            print(
+                f"📰 Nueva actualización VALORANT: "
+                f"{noticia['titulo']}"
+            )
+
+        except Exception as e:
+            print(
+                f"❌ Error enviando noticia VALORANT: {e}"
+            )
+
+    guardar_noticias_valorant(
+        noticias_publicadas +
+        [n["url"] for n in nuevas]
+    )
+
+
+@actualizaciones_valorant.before_loop
+async def antes_de_actualizaciones_valorant():
+    await bot.wait_until_ready()
 # -----------------------------
 # Iniciar la tarea al arrancar
 # -----------------------------
@@ -323,17 +341,14 @@ async def on_ready():
 
     await publicar_panel_llamadas()
 
-    # Iniciar sistema de avisos automático
     if not aviso_automatico.is_running():
         aviso_automatico.start()
 
-    # Iniciar actualizaciones automáticas de VALORANT
     if not actualizaciones_valorant.is_running():
         actualizaciones_valorant.start()
 
-    # Comprobar si ya había gente conectada a voz
     await comprobar_voz_al_iniciar()
-
+    
 @bot.event
 async def on_message(message):
     global last_activity
