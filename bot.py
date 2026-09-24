@@ -132,6 +132,19 @@ def guardar_noticias_valorant(noticias):
         json.dump(noticias, f, ensure_ascii=False, indent=4)
 
 
+def obtener_canal_valorant():
+    for guild in bot.guilds:
+        canal = discord.utils.get(
+            guild.text_channels,
+            name=VALORANT_CHANNEL_NAME
+        )
+
+        if canal:
+            return canal
+
+    return None
+
+
 async def obtener_noticias_valorant():
     headers = {
         "User-Agent": "Mozilla/5.0"
@@ -155,19 +168,6 @@ async def obtener_noticias_valorant():
         soup = BeautifulSoup(html, "html.parser")
 
         noticias = []
-
-        def obtener_canal_valorant():
-    for guild in bot.guilds:
-        canal = discord.utils.get(
-            guild.text_channels,
-            name=VALORANT_CHANNEL_NAME
-        )
-
-        if canal:
-            return canal
-
-    return None
-
         # Buscar los enlaces de las actualizaciones
         for enlace in soup.find_all("a", href=True):
 
@@ -292,6 +292,91 @@ async def obtener_noticias_valorant():
             f"❌ Error obteniendo noticias de VALORANT: {e}"
         )
         return []
+
+@tasks.loop(minutes=VALORANT_CHECK_MINUTES)
+async def actualizaciones_valorant():
+
+    canal = obtener_canal_valorant()
+
+    if canal is None:
+        print(
+            f"⚠️ No existe el canal {VALORANT_CHANNEL_NAME}"
+        )
+        return
+
+    noticias = await obtener_noticias_valorant()
+
+    if not noticias:
+        return
+
+    noticias_publicadas = cargar_noticias_valorant()
+
+    # Primera ejecución: guardar las noticias existentes
+    # para no publicar todas de golpe.
+    if not noticias_publicadas:
+        guardar_noticias_valorant(
+            [n["url"] for n in noticias]
+        )
+
+        print(
+            "📰 VALORANT: noticias iniciales guardadas."
+        )
+
+        return
+
+    nuevas = [
+        noticia
+        for noticia in noticias
+        if noticia["url"] not in noticias_publicadas
+    ]
+
+    if not nuevas:
+        return
+
+    for noticia in reversed(nuevas):
+
+        embed = discord.Embed(
+            title=f"📰 {noticia['titulo']}",
+            description=noticia["descripcion"],
+            url=noticia["url"],
+            color=discord.Color.red()
+        )
+
+        embed.set_author(name="VALORANT")
+
+        imagen = noticia.get("imagen")
+
+        if imagen and imagen.startswith(
+            ("http://", "https://")
+        ):
+            embed.set_image(url=imagen)
+
+        embed.set_footer(
+            text="VALORANT • Actualizaciones del juego"
+        )
+
+        try:
+            await canal.send(embed=embed)
+
+            print(
+                f"📰 Nueva actualización VALORANT: "
+                f"{noticia['titulo']}"
+            )
+
+        except Exception as e:
+            print(
+                f"❌ Error enviando noticia VALORANT: {e}"
+            )
+
+    guardar_noticias_valorant(
+        noticias_publicadas +
+        [n["url"] for n in nuevas]
+    )
+
+
+@actualizaciones_valorant.before_loop
+async def antes_de_actualizaciones_valorant():
+    await bot.wait_until_ready()
 # -----------------------------
 # Iniciar la tarea al arrancar
 # -----------------------------
