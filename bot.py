@@ -52,9 +52,31 @@ last_activity = None
 @bot.event
 async def on_message(message):
     global last_activity
+
     if message.author.bot:
         return
+
     last_activity = datetime.utcnow()
+
+    canales_restringidos = [
+        1437551679770857542,
+        1437833190076317806
+    ]
+
+    # En estos canales solo se permiten comandos
+    if (
+        message.channel.id in canales_restringidos
+        and not message.content.startswith(bot.command_prefix)
+    ):
+        try:
+            await message.delete()
+        except discord.Forbidden:
+            pass
+        except Exception as e:
+            print(f"⚠️ No se pudo eliminar mensaje: {e}")
+
+        return
+
     await bot.process_commands(message)
 
 # -----------------------------
@@ -157,12 +179,23 @@ async def obtener_noticias_valorant():
 
             img = enlace.find("img")
 
-            if img:
+           if img:
                 imagen = (
                     img.get("src")
                     or img.get("data-src")
                     or img.get("data-lazy-src")
                 )
+
+                # Convertir imágenes relativas en URLs completas
+                if imagen:
+                    if imagen.startswith("//"):
+                        imagen = "https:" + imagen
+
+                    elif imagen.startswith("/"):
+                        imagen = "https://playvalorant.com" + imagen
+
+                    elif not imagen.startswith(("http://", "https://")):
+                        imagen = None
 
             # Buscar contenedor de la noticia
             contenedor = enlace
@@ -297,10 +330,10 @@ async def actualizaciones_valorant():
             name="VALORANT"
         )
 
-        if noticia["imagen"]:
-            embed.set_image(
-                url=noticia["imagen"]
-            )
+        imagen = noticia.get("imagen")
+
+        if imagen and imagen.startswith(("http://", "https://")):
+            embed.set_image(url=imagen)
 
         embed.set_footer(
             text="VALORANT • Actualizaciones del juego"
@@ -349,37 +382,6 @@ async def on_ready():
 
     await comprobar_voz_al_iniciar()
     
-@bot.event
-async def on_message(message):
-    global last_activity
-
-    if message.author.bot:
-        return
-
-    last_activity = datetime.utcnow()
-    await bot.process_commands(message)
-
-#ELIMINACION DE MENSAJES NO COMANDOS    
-
-@bot.event
-async def on_message(message):
-    # Ignorar mensajes del bot
-    if message.author.bot:
-        return
-
-    # Lista de IDs de canales donde solo se permiten comandos
-    canales_restringidos = [1437551679770857542, 1437833190076317806]  # reemplaza con tus IDs
-
-    # Solo borrar mensajes que NO sean comandos
-    if message.channel.id in canales_restringidos and not message.content.startswith(bot.command_prefix):
-        try:
-            await message.delete()
-        except Exception as e:
-            print(f"⚠️ No se pudo eliminar mensaje: {e}")
-        return
-
-    # Procesar comandos normalmente
-    await bot.process_commands(message)
 
 #CREACION DE PARTIDAS POR ROL
 
@@ -1289,21 +1291,6 @@ class BotonNotificarLlamadas(
                 text="Este mensaje se eliminará en 5 minutos."
             )
 
-            await interaction.response.send_message(
-                embed=embed
-            )
-
-            mensaje = await interaction.original_response()
-
-            await asyncio.sleep(
-                TIEMPO_BORRADO_LLAMADA
-            )
-
-            try:
-                await mensaje.delete()
-            except discord.NotFound:
-                pass
-
             return
 
         # ====================================================
@@ -1357,10 +1344,6 @@ class BotonNotificarLlamadas(
             embed=embed,
             allowed_mentions=allowed_mentions,
             delete_after=300
-        )
-
-        await interaction.response.send_message(
-            embed=embed
         )
 
         mensaje = await interaction.original_response()
@@ -1621,7 +1604,8 @@ async def comando_valorant(ctx):
         embed.set_author(name="VALORANT")
 
         imagen = noticia.get("imagen")
-        if imagen:
+
+        if imagen and imagen.startswith(("http://", "https://")):
             embed.set_image(url=imagen)
 
         embed.set_footer(
