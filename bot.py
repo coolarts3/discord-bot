@@ -270,16 +270,9 @@ async def monitor_inactividad(bot, text_channel, voice_channel, starter_message,
 # ----------------------------
 
 class RoleSelectView(discord.ui.View):
-    def __init__(self, user):
+    def __init__(self):
         super().__init__(timeout=None)
-        self.user = user
         self.temp_channel = None
-
-    async def interaction_check(self, interaction: discord.Interaction):
-        if interaction.user != self.user:
-            await interaction.response.send_message("❌ Solo el creador puede usar este menú.", ephemeral=True)
-            return False
-        return True
 
     @discord.ui.button(label="💻 Plataforma", style=discord.ButtonStyle.primary)
     async def select_platform(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -375,12 +368,19 @@ async def roles(ctx):
     await ctx.message.delete()
 
     # Crear la vista principal
-    view = RoleSelectView(ctx.author)
+    view = RoleSelectView()
 
     # Crear canal temporal privado directamente al iniciar
     overwrites = {
-        ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False),
-        ctx.author: discord.PermissionOverwrite(view_channel=True)
+        ctx.guild.default_role: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=False
+        ),
+        ctx.guild.me: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            embed_links=True
+        )
     }
     category = discord.utils.get(ctx.guild.categories, name="🎮 Roles")
     if not category:
