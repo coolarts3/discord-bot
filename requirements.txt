@@ -4,3 +4,5 @@ pynacl
 yt-dlp
 spotipy
 imageio-ffmpeg
+aiohttp
+beautifulsoup4
