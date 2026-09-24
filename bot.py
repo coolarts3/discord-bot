@@ -77,6 +77,8 @@ async def aviso_automatico():
 async def on_ready():
     print(f"🤖 Bot conectado como {bot.user}")
 
+    bot.add_view(BienvenidaView())
+
     await publicar_panel_llamadas()
 
     # Iniciar tu sistema de avisos automático
@@ -1272,7 +1274,6 @@ async def bienvenida(ctx):
 # ----------------------------
 # INICIAR BOT
 # ----------------------------
-bot.add_view(BienvenidaView())
 
 bot.run(os.getenv("DISCORD_TOKEN"))
 
