@@ -270,23 +270,69 @@ async def monitor_inactividad(bot, text_channel, voice_channel, starter_message,
 # ----------------------------
 
 class RoleSelectView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, user):
         super().__init__(timeout=None)
+        self.user = user
         self.temp_channel = None
 
-    @discord.ui.button(label="💻 Plataforma", style=discord.ButtonStyle.primary)
-    async def select_platform(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("Selecciona tu plataforma:", view=PlatformButtons(self), ephemeral=True)
+    async def interaction_check(self, interaction: discord.Interaction):
+        if interaction.user != self.user:
+            await interaction.response.send_message(
+                "❌ Solo el creador puede usar este menú.",
+                ephemeral=True
+            )
+            return False
 
-    @discord.ui.button(label="🎮 Juegos", style=discord.ButtonStyle.success)
-    async def select_games(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("Selecciona tus juegos:", view=GamesButtons(self), ephemeral=True)
+        return True
 
-    @discord.ui.button(label="✅ Finalizar", style=discord.ButtonStyle.green)
-    async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("✅ Roles asignados. Canal temporal eliminado.", ephemeral=True)
+    @discord.ui.button(
+        label="💻 Plataforma",
+        style=discord.ButtonStyle.primary
+    )
+    async def select_platform(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        await interaction.response.send_message(
+            "Selecciona tu plataforma:",
+            view=PlatformButtons(self),
+            ephemeral=True
+        )
+
+    @discord.ui.button(
+        label="🎮 Juegos",
+        style=discord.ButtonStyle.success
+    )
+    async def select_games(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        await interaction.response.send_message(
+            "Selecciona tus juegos:",
+            view=GamesButtons(self),
+            ephemeral=True
+        )
+
+    @discord.ui.button(
+        label="✅ Finalizar",
+        style=discord.ButtonStyle.green
+    )
+    async def finalize(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        await interaction.response.send_message(
+            "✅ Roles asignados. Canal temporal eliminado.",
+            ephemeral=True
+        )
+
         if self.temp_channel:
-            await self.temp_channel.delete(reason="Usuario terminó selección de roles")
+            await self.temp_channel.delete(
+                reason="Usuario terminó selección de roles"
+            )
 
 # -------------------------------
 # BOTONES DE PLATAFORMA
