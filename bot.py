@@ -112,28 +112,82 @@ async def aviso_automatico():
 
 VALORANT_NEWS_URL = "https://playvalorant.com/es-es/news/game-updates/"
 VALORANT_CHANNEL_NAME = "📰│𝙑𝘼𝙇𝙊𝙍𝘼𝙉𝙏-𝙉𝙀𝙒𝙎"
+
+# Comprobar nuevas noticias cada 10 minutos
 VALORANT_CHECK_MINUTES = 10
+
+# Archivo donde guardamos las noticias ya publicadas
 VALORANT_NEWS_FILE = "valorant_news.json"
 
+# Máximo de noticias que vamos a analizar del listado
+VALORANT_MAX_NOTICIAS = 10
+
+
+# ============================================================
+# 💾 GUARDAR / CARGAR NOTICIAS
+# ============================================================
 
 def cargar_noticias_valorant():
+
     if not os.path.exists(VALORANT_NEWS_FILE):
         return []
 
     try:
-        with open(VALORANT_NEWS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
+
+        with open(
+            VALORANT_NEWS_FILE,
+            "r",
+            encoding="utf-8"
+        ) as f:
+
+            datos = json.load(f)
+
+            if isinstance(datos, list):
+                return datos
+
+            return []
+
+    except Exception as e:
+
+        print(
+            f"⚠️ No se pudo leer {VALORANT_NEWS_FILE}: {e}"
+        )
+
         return []
 
 
 def guardar_noticias_valorant(noticias):
-    with open(VALORANT_NEWS_FILE, "w", encoding="utf-8") as f:
-        json.dump(noticias, f, ensure_ascii=False, indent=4)
 
+    try:
+
+        with open(
+            VALORANT_NEWS_FILE,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                noticias,
+                f,
+                ensure_ascii=False,
+                indent=4
+            )
+
+    except Exception as e:
+
+        print(
+            f"❌ No se pudo guardar {VALORANT_NEWS_FILE}: {e}"
+        )
+
+
+# ============================================================
+# 📺 OBTENER CANAL DE VALORANT
+# ============================================================
 
 def obtener_canal_valorant():
+
     for guild in bot.guilds:
+
         canal = discord.utils.get(
             guild.text_channels,
             name=VALORANT_CHANNEL_NAME
@@ -145,237 +199,924 @@ def obtener_canal_valorant():
     return None
 
 
-async def obtener_noticias_valorant():
-    headers = {
-        "User-Agent": "Mozilla/5.0"
+# ============================================================
+# 🔗 CONVERTIR URL EN ABSOLUTA
+# ============================================================
+
+def convertir_url_valorant(url):
+
+    if not url:
+        return None
+
+    url = url.strip()
+
+    if url.startswith("//"):
+        return "https:" + url
+
+    if url.startswith("/"):
+        return "https://playvalorant.com" + url
+
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+
+    return None
+
+
+# ============================================================
+# 🧹 LIMPIAR TEXTO
+# ============================================================
+
+def limpiar_texto_valorant(texto):
+
+    if not texto:
+        return ""
+
+    texto = re.sub(
+        r"\s+",
+        " ",
+        texto
+    )
+
+    return texto.strip()
+
+
+# ============================================================
+# ✂️ LIMITAR TEXTO SIN CORTAR PALABRAS
+# ============================================================
+
+def limitar_texto(texto, limite):
+
+    texto = limpiar_texto_valorant(texto)
+
+    if len(texto) <= limite:
+        return texto
+
+    texto = texto[:limite - 3]
+
+    ultimo_espacio = texto.rfind(" ")
+
+    if ultimo_espacio > 0:
+        texto = texto[:ultimo_espacio]
+
+    return texto + "..."
+
+
+# ============================================================
+# 📰 OBTENER DETALLES DE UNA NOTICIA
+# ============================================================
+
+async def obtener_detalle_noticia_valorant(
+    session,
+    url,
+    titulo_lista=None,
+    imagen_lista=None
+):
+
+    noticia = {
+        "url": url,
+        "titulo": titulo_lista or "Nueva actualización de VALORANT",
+        "descripcion": "",
+        "contenido": "",
+        "imagen": imagen_lista,
+        "fecha": None
     }
 
     try:
-        async with aiohttp.ClientSession(headers=headers) as session:
+
+        async with session.get(
+            url,
+            timeout=aiohttp.ClientTimeout(total=20),
+            allow_redirects=True
+        ) as response:
+
+            if response.status != 200:
+
+                print(
+                    f"⚠️ No se pudo abrir noticia "
+                    f"{url} | HTTP {response.status}"
+                )
+
+                return noticia
+
+            html = await response.text()
+
+    except Exception as e:
+
+        print(
+            f"⚠️ Error abriendo noticia VALORANT: {e}"
+        )
+
+        return noticia
+
+
+    soup = BeautifulSoup(
+        html,
+        "html.parser"
+    )
+
+
+    # ========================================================
+    # 🏷️ FUNCIÓN PARA LEER META TAGS
+    # ========================================================
+
+    def obtener_meta(nombre=None, propiedad=None):
+
+        if nombre:
+
+            meta = soup.find(
+                "meta",
+                attrs={"name": nombre}
+            )
+
+            if meta and meta.get("content"):
+                return limpiar_texto_valorant(
+                    meta.get("content")
+                )
+
+        if propiedad:
+
+            meta = soup.find(
+                "meta",
+                attrs={"property": propiedad}
+            )
+
+            if meta and meta.get("content"):
+                return limpiar_texto_valorant(
+                    meta.get("content")
+                )
+
+        return None
+
+
+    # ========================================================
+    # 📰 TÍTULO
+    # ========================================================
+
+    titulo = (
+        obtener_meta(
+            propiedad="og:title"
+        )
+        or obtener_meta(
+            nombre="twitter:title"
+        )
+    )
+
+    if not titulo:
+
+        h1 = soup.find("h1")
+
+        if h1:
+            titulo = limpiar_texto_valorant(
+                h1.get_text(" ", strip=True)
+            )
+
+    if titulo:
+        noticia["titulo"] = titulo
+
+
+    # ========================================================
+    # 🖼️ IMAGEN PRINCIPAL
+    # ========================================================
+
+    imagen = (
+        obtener_meta(
+            propiedad="og:image"
+        )
+        or obtener_meta(
+            nombre="twitter:image"
+        )
+    )
+
+    if imagen:
+
+        imagen = convertir_url_valorant(
+            imagen
+        )
+
+        if imagen:
+            noticia["imagen"] = imagen
+
+
+    # ========================================================
+    # 📝 DESCRIPCIÓN
+    # ========================================================
+
+    descripcion = (
+        obtener_meta(
+            propiedad="og:description"
+        )
+        or obtener_meta(
+            nombre="description"
+        )
+        or obtener_meta(
+            nombre="twitter:description"
+        )
+    )
+
+    if descripcion:
+
+        noticia["descripcion"] = limitar_texto(
+            descripcion,
+            1000
+        )
+
+
+    # ========================================================
+    # 📅 FECHA
+    # ========================================================
+
+    fecha = (
+        obtener_meta(
+            propiedad="article:published_time"
+        )
+        or obtener_meta(
+            nombre="date"
+        )
+    )
+
+    if not fecha:
+
+        time_tag = soup.find(
+            "time"
+        )
+
+        if time_tag:
+
+            fecha = (
+                time_tag.get("datetime")
+                or time_tag.get_text(
+                    " ",
+                    strip=True
+                )
+            )
+
+    if fecha:
+        noticia["fecha"] = fecha
+
+
+    # ========================================================
+    # 📖 BUSCAR CONTENIDO DEL ARTÍCULO
+    # ========================================================
+
+    contenedor = None
+
+    posibles_contenedores = [
+        soup.find("article"),
+        soup.find(
+            "main"
+        )
+    ]
+
+    for candidato in posibles_contenedores:
+
+        if candidato:
+
+            texto_candidato = limpiar_texto_valorant(
+                candidato.get_text(
+                    " ",
+                    strip=True
+                )
+            )
+
+            if len(texto_candidato) > 200:
+
+                contenedor = candidato
+                break
+
+
+    # ========================================================
+    # 📚 EXTRAER PÁRRAFOS
+    # ========================================================
+
+    parrafos = []
+
+    if contenedor:
+
+        for elemento in contenedor.find_all(
+            ["p", "li", "h2", "h3"]
+        ):
+
+            texto = limpiar_texto_valorant(
+                elemento.get_text(
+                    " ",
+                    strip=True
+                )
+            )
+
+            if not texto:
+                continue
+
+            # Evitar textos absurdamente cortos
+            if len(texto) < 25:
+                continue
+
+            # Evitar navegación / botones
+            textos_ignorados = [
+                "compartir",
+                "share",
+                "leer más",
+                "más información",
+                "iniciar sesión",
+                "descargar"
+            ]
+
+            if texto.lower() in textos_ignorados:
+                continue
+
+            if texto not in parrafos:
+
+                parrafos.append(
+                    texto
+                )
+
+
+    # ========================================================
+    # 📖 CREAR RESUMEN LARGO
+    # ========================================================
+
+    if parrafos:
+
+        contenido_partes = []
+
+        for texto in parrafos:
+
+            contenido_partes.append(
+                texto
+            )
+
+            # No necesitamos meter el artículo entero
+            if len(
+                "\n\n".join(
+                    contenido_partes
+                )
+            ) >= 2800:
+
+                break
+
+        contenido = "\n\n".join(
+            contenido_partes
+        )
+
+        noticia["contenido"] = limitar_texto(
+            contenido,
+            3000
+        )
+
+
+    # ========================================================
+    # SI NO ENCONTRAMOS CONTENIDO
+    # ========================================================
+
+    if not noticia["contenido"]:
+
+        if noticia["descripcion"]:
+
+            noticia["contenido"] = noticia[
+                "descripcion"
+            ]
+
+        else:
+
+            noticia["contenido"] = (
+                "Nueva actualización publicada "
+                "por VALORANT."
+            )
+
+
+    # ========================================================
+    # DESCRIPCIÓN PARA EL EMBED
+    # ========================================================
+
+    if not noticia["descripcion"]:
+
+        # Usar los primeros 1000 caracteres
+        # del contenido como resumen
+
+        noticia["descripcion"] = limitar_texto(
+            noticia["contenido"],
+            1000
+        )
+
+
+    return noticia
+
+
+# ============================================================
+# 🔎 OBTENER LISTADO DE NOTICIAS
+# ============================================================
+
+async def obtener_noticias_valorant():
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 "
+            "(KHTML, like Gecko) "
+            "Chrome/140.0 Safari/537.36"
+        ),
+        "Accept-Language": "es-ES,es;q=0.9"
+    }
+
+
+    try:
+
+        async with aiohttp.ClientSession(
+            headers=headers
+        ) as session:
+
+            # =================================================
+            # OBTENER PÁGINA PRINCIPAL
+            # =================================================
+
             async with session.get(
                 VALORANT_NEWS_URL,
-                timeout=aiohttp.ClientTimeout(total=20)
+                timeout=aiohttp.ClientTimeout(
+                    total=20
+                )
             ) as response:
 
                 if response.status != 200:
+
                     print(
-                        f"⚠️ VALORANT respondió con HTTP {response.status}"
+                        f"⚠️ VALORANT respondió "
+                        f"HTTP {response.status}"
                     )
+
                     return []
 
                 html = await response.text()
 
-        soup = BeautifulSoup(html, "html.parser")
 
-        noticias = []
-        # Buscar los enlaces de las actualizaciones
-        for enlace in soup.find_all("a", href=True):
+            soup = BeautifulSoup(
+                html,
+                "html.parser"
+            )
 
-            href = enlace.get("href", "")
 
-            if "/es-es/news/game-updates/" not in href:
-                continue
+            enlaces = []
 
-            if href.rstrip("/") == "/es-es/news/game-updates":
-                continue
+            # =================================================
+            # BUSCAR ENLACES DE NOTICIAS
+            # =================================================
 
-            # Convertir URL relativa en absoluta
-            if href.startswith("/"):
-                url = "https://playvalorant.com" + href
-            else:
-                url = href
+            for enlace in soup.find_all(
+                "a",
+                href=True
+            ):
 
-            # Evitar duplicados
-            if any(n["url"] == url for n in noticias):
-                continue
-
-            # Buscar título
-            titulo = enlace.get_text(" ", strip=True)
-
-            if not titulo:
-                titulo = "Nueva actualización de VALORANT"
-
-            # ----------------------------------------
-            # BUSCAR IMAGEN
-            # ----------------------------------------
-
-            imagen = None
-
-            img = enlace.find("img")
-
-            if img:
-                imagen = (
-                    img.get("src")
-                    or img.get("data-src")
-                    or img.get("data-lazy-src")
+                href = enlace.get(
+                    "href",
+                    ""
                 )
 
-                # Convertir imágenes relativas en URLs completas
-                if imagen:
-                    if imagen.startswith("//"):
-                        imagen = "https:" + imagen
+                if "/es-es/news/game-updates/" not in href:
+                    continue
 
-                    elif imagen.startswith("/"):
-                        imagen = "https://playvalorant.com" + imagen
+                # Evitar la propia página principal
+                if href.rstrip("/") == (
+                    "/es-es/news/game-updates"
+                ):
+                    continue
 
-                    elif not imagen.startswith(
-                        ("http://", "https://")
-                    ):
-                        imagen = None
+                url = convertir_url_valorant(
+                    href
+                )
 
-            # ----------------------------------------
-            # BUSCAR CONTENEDOR DE LA NOTICIA
-            # ----------------------------------------
+                if not url:
+                    continue
 
-            contenedor = enlace
+                # Evitar duplicados
+                if any(
+                    item["url"] == url
+                    for item in enlaces
+                ):
+                    continue
 
-            for _ in range(5):
-                if contenedor.parent:
-                    contenedor = contenedor.parent
 
-                    texto = contenedor.get_text(
+                # =================================================
+                # TÍTULO DE LA TARJETA
+                # =================================================
+
+                titulo = limpiar_texto_valorant(
+                    enlace.get_text(
                         " ",
                         strip=True
                     )
-
-                    if len(texto) > len(titulo) + 30:
-                        break
-
-            texto_completo = contenedor.get_text(
-                " ",
-                strip=True
-            )
-
-            # ----------------------------------------
-            # BUSCAR DESCRIPCIÓN
-            # ----------------------------------------
-
-            descripcion = ""
-
-            for tag in contenedor.find_all(
-                ["p", "div", "span"]
-            ):
-                texto = tag.get_text(
-                    " ",
-                    strip=True
                 )
 
-                if (
-                    len(texto) > 30
-                    and texto != titulo
-                    and "Actualizaciones del juego" not in texto
-                ):
-                    descripcion = texto
+                if not titulo:
+
+                    titulo = (
+                        "Nueva actualización "
+                        "de VALORANT"
+                    )
+
+
+                # =================================================
+                # IMAGEN DE LA TARJETA
+                # =================================================
+
+                imagen = None
+
+                img = enlace.find(
+                    "img"
+                )
+
+                if img:
+
+                    posibles = [
+                        img.get("src"),
+                        img.get("data-src"),
+                        img.get("data-lazy-src"),
+                        img.get("srcset")
+                    ]
+
+                    for posible in posibles:
+
+                        if posible:
+
+                            # srcset puede tener varias URLs
+                            if " " in posible:
+                                posible = posible.split(
+                                    ","
+                                )[0].strip().split(
+                                    " "
+                                )[0]
+
+                            imagen = convertir_url_valorant(
+                                posible
+                            )
+
+                            if imagen:
+                                break
+
+
+                enlaces.append({
+                    "url": url,
+                    "titulo": titulo,
+                    "imagen": imagen
+                })
+
+
+                if len(enlaces) >= VALORANT_MAX_NOTICIAS:
                     break
 
-            if not descripcion:
-                descripcion = (
-                    "Nueva actualización publicada "
-                    "por VALORANT."
+
+            # =================================================
+            # OBTENER INFORMACIÓN COMPLETA
+            # =================================================
+
+            noticias = []
+
+            for item in enlaces:
+
+                detalle = (
+                    await obtener_detalle_noticia_valorant(
+                        session=session,
+                        url=item["url"],
+                        titulo_lista=item["titulo"],
+                        imagen_lista=item["imagen"]
+                    )
                 )
 
-            # Limitar descripción para Discord
-            if len(descripcion) > 500:
-                descripcion = descripcion[:497] + "..."
+                noticias.append(
+                    detalle
+                )
 
-            noticias.append({
-                "url": url,
-                "titulo": titulo,
-                "descripcion": descripcion,
-                "imagen": imagen
-            })
 
-        return noticias
+            return noticias
+
 
     except Exception as e:
+
         print(
-            f"❌ Error obteniendo noticias de VALORANT: {e}"
+            f"❌ Error obteniendo noticias "
+            f"de VALORANT: {e}"
         )
+
         return []
 
-@tasks.loop(minutes=VALORANT_CHECK_MINUTES)
+
+# ============================================================
+# 🎨 CREAR EMBED DE VALORANT
+# ============================================================
+
+def crear_embed_valorant(noticia):
+
+    titulo = noticia.get(
+        "titulo",
+        "Nueva actualización de VALORANT"
+    )
+
+    url = noticia.get(
+        "url"
+    )
+
+    descripcion = noticia.get(
+        "descripcion",
+        ""
+    )
+
+    contenido = noticia.get(
+        "contenido",
+        ""
+    )
+
+    imagen = noticia.get(
+        "imagen"
+    )
+
+    fecha = noticia.get(
+        "fecha"
+    )
+
+
+    # ========================================================
+    # CREAR DESCRIPCIÓN
+    # ========================================================
+
+    partes = []
+
+    if descripcion:
+
+        partes.append(
+            f"**📢 Resumen**\n{descripcion}"
+        )
+
+
+    if contenido:
+
+        # Evitar repetir exactamente
+        # la misma descripción
+
+        contenido_limpio = contenido.strip()
+
+        if (
+            contenido_limpio
+            and contenido_limpio != descripcion.strip()
+        ):
+
+            partes.append(
+                f"**📖 Información**\n{contenido_limpio}"
+            )
+
+
+    if not partes:
+
+        partes.append(
+            "Nueva actualización publicada "
+            "por VALORANT."
+        )
+
+
+    descripcion_final = "\n\n".join(
+        partes
+    )
+
+
+    # Discord permite hasta 4096 caracteres
+    descripcion_final = limitar_texto(
+        descripcion_final,
+        4000
+    )
+
+
+    # ========================================================
+    # CREAR EMBED
+    # ========================================================
+
+    embed = discord.Embed(
+        title=f"📰 {limitar_texto(titulo, 250)}",
+        description=descripcion_final,
+        url=url,
+        color=discord.Color.from_rgb(
+            255,
+            70,
+            85
+        ),
+        timestamp=datetime.now(
+            timezone.utc
+        )
+    )
+
+
+    # ========================================================
+    # AUTOR
+    # ========================================================
+
+    embed.set_author(
+        name="VALORANT • Actualizaciones"
+    )
+
+
+    # ========================================================
+    # INFORMACIÓN EXTRA
+    # ========================================================
+
+    if fecha:
+
+        embed.add_field(
+            name="📅 Publicado",
+            value=limitar_texto(
+                fecha,
+                100
+            ),
+            inline=True
+        )
+
+
+    embed.add_field(
+        name="🎮 Juego",
+        value="VALORANT",
+        inline=True
+    )
+
+
+    embed.add_field(
+        name="🔗 Artículo completo",
+        value=(
+            f"[Leer la actualización completa]({url})"
+        ),
+        inline=False
+    )
+
+
+    # ========================================================
+    # IMAGEN GRANDE
+    # ========================================================
+
+    if imagen:
+
+        try:
+
+            embed.set_image(
+                url=imagen
+            )
+
+        except Exception as e:
+
+            print(
+                f"⚠️ Error colocando imagen: {e}"
+            )
+
+
+    # ========================================================
+    # FOOTER
+    # ========================================================
+
+    embed.set_footer(
+        text=(
+            "VALORANT • Noticias y actualizaciones "
+            "oficiales"
+        )
+    )
+
+
+    return embed
+
+
+# ============================================================
+# 🔄 COMPROBACIÓN AUTOMÁTICA
+# ============================================================
+
+@tasks.loop(
+    minutes=VALORANT_CHECK_MINUTES
+)
 async def actualizaciones_valorant():
 
     canal = obtener_canal_valorant()
 
+
     if canal is None:
+
         print(
-            f"⚠️ No existe el canal {VALORANT_CHANNEL_NAME}"
+            f"⚠️ No existe el canal "
+            f"{VALORANT_CHANNEL_NAME}"
         )
+
         return
+
+
+    print(
+        "🔎 Comprobando nuevas noticias de VALORANT..."
+    )
+
 
     noticias = await obtener_noticias_valorant()
 
+
     if not noticias:
+
+        print(
+            "⚠️ No se encontraron noticias."
+        )
+
         return
 
-    noticias_publicadas = cargar_noticias_valorant()
 
-    # Primera ejecución: guardar las noticias existentes
-    # para no publicar todas de golpe.
+    noticias_publicadas = (
+        cargar_noticias_valorant()
+    )
+
+
+    # ========================================================
+    # PRIMERA EJECUCIÓN
+    # ========================================================
+
     if not noticias_publicadas:
+
         guardar_noticias_valorant(
-            [n["url"] for n in noticias]
+            [
+                noticia["url"]
+                for noticia in noticias
+                if noticia.get("url")
+            ]
         )
 
         print(
-            "📰 VALORANT: noticias iniciales guardadas."
+            "📰 VALORANT: noticias iniciales "
+            "guardadas sin publicar."
         )
 
         return
+
+
+    # ========================================================
+    # BUSCAR NUEVAS
+    # ========================================================
 
     nuevas = [
         noticia
         for noticia in noticias
-        if noticia["url"] not in noticias_publicadas
+        if noticia.get("url")
+        and noticia["url"]
+        not in noticias_publicadas
     ]
 
+
     if not nuevas:
+
+        print(
+            "✔ VALORANT: no hay noticias nuevas."
+        )
+
         return
 
-    for noticia in reversed(nuevas):
 
-        embed = discord.Embed(
-            title=f"📰 {noticia['titulo']}",
-            description=noticia["descripcion"],
-            url=noticia["url"],
-            color=discord.Color.red()
-        )
-
-        embed.set_author(name="VALORANT")
-
-        imagen = noticia.get("imagen")
-
-        if imagen and imagen.startswith(
-            ("http://", "https://")
-        ):
-            embed.set_image(url=imagen)
-
-        embed.set_footer(
-            text="VALORANT • Actualizaciones del juego"
-        )
-
-        try:
-            await canal.send(embed=embed)
-
-            print(
-                f"📰 Nueva actualización VALORANT: "
-                f"{noticia['titulo']}"
-            )
-
-        except Exception as e:
-            print(
-                f"❌ Error enviando noticia VALORANT: {e}"
-            )
-
-    guardar_noticias_valorant(
-        noticias_publicadas +
-        [n["url"] for n in nuevas]
+    print(
+        f"📰 VALORANT: {len(nuevas)} "
+        f"noticia(s) nueva(s)."
     )
 
 
+    # Publicar de la más antigua a la más reciente
+    for noticia in reversed(nuevas):
+
+        embed = crear_embed_valorant(
+            noticia
+        )
+
+        try:
+
+            await canal.send(
+                embed=embed
+            )
+
+            print(
+                "📰 Nueva actualización VALORANT: "
+                f"{noticia.get('titulo')}"
+            )
+
+        except Exception as e:
+
+            print(
+                "❌ Error enviando noticia "
+                f"VALORANT: {e}"
+            )
+
+
+    # ========================================================
+    # GUARDAR COMO PUBLICADAS
+    # ========================================================
+
+    guardar_noticias_valorant(
+        noticias_publicadas
+        +
+        [
+            noticia["url"]
+            for noticia in nuevas
+            if noticia.get("url")
+        ]
+    )
+
+
+# ============================================================
+# ⏳ ESPERAR A QUE EL BOT ESTÉ LISTO
+# ============================================================
+
 @actualizaciones_valorant.before_loop
 async def antes_de_actualizaciones_valorant():
+
     await bot.wait_until_ready()
 # -----------------------------
 # Iniciar la tarea al arrancar
@@ -1591,83 +2332,125 @@ async def bienvenida(ctx):
 async def comando_valorant(ctx):
     """Publica manualmente la última actualización de VALORANT."""
 
+    mensaje_busqueda = None
+
     try:
-        await ctx.send("🔎 Buscando la última publicación de VALORANT...", delete_after=5)
+
+        mensaje_busqueda = await ctx.send(
+            "🔎 **Buscando la última publicación de VALORANT...**"
+        )
 
         noticias = await obtener_noticias_valorant()
 
         if not noticias:
+
             await ctx.send(
-                "❌ No he podido obtener ninguna publicación de VALORANT."
+                "❌ No he podido obtener ninguna publicación de VALORANT.",
+                delete_after=8
             )
+
             return
 
-        # La primera noticia será la más reciente
+
+        # La primera debería ser la más reciente
         noticia = noticias[0]
 
-        embed = discord.Embed(
-            title=f"📰 {noticia.get('titulo', 'Nueva actualización de VALORANT')}",
-            description=noticia.get(
-                "descripcion",
-                "Nueva actualización publicada por VALORANT."
-            ),
-            url=noticia.get("url"),
-            color=discord.Color.red()
+
+        # Crear embed completo
+        embed = crear_embed_valorant(
+            noticia
         )
 
-        embed.set_author(name="VALORANT")
 
-        imagen = noticia.get("imagen")
-
-        if imagen and imagen.startswith(("http://", "https://")):
-            embed.set_image(url=imagen)
-
-        embed.set_footer(
-            text="VALORANT • Actualizaciones del juego"
-        )
-
-        # Buscar el canal configurado
+        # Buscar canal
         canal = obtener_canal_valorant()
 
+
         if canal is None:
+
             await ctx.send(
-                f"❌ No encuentro el canal `{VALORANT_CHANNEL_NAME}`."
+                f"❌ No encuentro el canal "
+                f"`{VALORANT_CHANNEL_NAME}`.",
+                delete_after=8
             )
+
             return
 
-        # Enviar la noticia
-        await canal.send(embed=embed)
 
-        # Confirmación al administrador
+        # Publicar
+        await canal.send(
+            embed=embed
+        )
+
+
+        # Confirmación
         await ctx.send(
-            f"✅ Última publicación de VALORANT enviada en {canal.mention}.",
+            "✅ **Noticia publicada correctamente.**\n"
+            f"📰 {noticia.get('titulo', 'Actualización de VALORANT')}\n"
+            f"📍 {canal.mention}",
             delete_after=8
         )
 
-        print(f"📰 !valorant ejecutado: {noticia.get('titulo')}")
+
+        print(
+            "📰 !valorant ejecutado: "
+            f"{noticia.get('titulo')}"
+        )
+
 
     except Exception as e:
-        print(f"❌ Error en !valorant: {e}")
+
+        print(
+            f"❌ Error en !valorant: {e}"
+        )
 
         await ctx.send(
-            f"❌ Ha ocurrido un error al ejecutar `!valorant`:\n"
-            f"`{type(e).__name__}: {e}`"
+            "❌ Ha ocurrido un error al ejecutar "
+            "`!valorant`:\n"
+            f"`{type(e).__name__}: {e}`",
+            delete_after=10
         )
+
+
+    finally:
+
+        if mensaje_busqueda:
+
+            try:
+
+                await mensaje_busqueda.delete()
+
+            except (
+                discord.NotFound,
+                discord.Forbidden
+            ):
+
+                pass
 
 
 @comando_valorant.error
 async def comando_valorant_error(ctx, error):
 
-    if isinstance(error, commands.MissingPermissions):
+    if isinstance(
+        error,
+        commands.MissingPermissions
+    ):
+
         await ctx.send(
-            "⛔ Solo los administradores pueden utilizar este comando.",
+            "⛔ Solo los administradores pueden "
+            "utilizar este comando.",
             delete_after=5
         )
 
     else:
-        print(f"❌ Error del comando !valorant: {error}")
+
+        print(
+            f"❌ Error del comando !valorant: {error}"
+        )
+
         await ctx.send(
-            f"❌ Error en `!valorant`:\n`{error}`",
+            f"❌ Error en `!valorant`:\n"
+            f"`{error}`",
             delete_after=10
         )
         
