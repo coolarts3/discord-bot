@@ -1463,7 +1463,7 @@ async def crear_partida_valorant(interaction):
 
         while True:
 
-            await asyncio.sleep(10)
+            await asyncio.sleep(60)
 
             # Comprobar que el canal sigue existiendo
             try:
