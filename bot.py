@@ -591,6 +591,53 @@ class RoleSelectView(discord.ui.View):
                 reason="Usuario terminó selección de roles"
             )
 
+@bot.command(name="valorant")
+@commands.has_permissions(administrator=True)
+async def comando_valorant(ctx):
+    """Publica la última actualización de VALORANT."""
+
+    noticias = await obtener_noticias_valorant()
+
+    if not noticias:
+        await ctx.send(
+            "❌ No he podido obtener la última actualización de VALORANT."
+        )
+        return
+
+    noticia = noticias[0]
+
+    embed = discord.Embed(
+        title=f"📰 {noticia['titulo']}",
+        description=noticia["descripcion"],
+        url=noticia["url"],
+        color=discord.Color.red()
+    )
+
+    embed.set_author(
+        name="VALORANT"
+    )
+
+    if noticia.get("imagen"):
+        embed.set_image(
+            url=noticia["imagen"]
+        )
+
+    embed.set_footer(
+        text="VALORANT • Actualizaciones del juego"
+    )
+
+    await ctx.send(embed=embed)
+
+
+@comando_valorant.error
+async def comando_valorant_error(ctx, error):
+
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(
+            "⛔ Solo los administradores pueden utilizar este comando.",
+            delete_after=5
+        )
+
 # -------------------------------
 # BOTONES DE PLATAFORMA
 # -------------------------------
