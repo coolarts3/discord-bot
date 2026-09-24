@@ -1398,13 +1398,13 @@ async def crear_partida_valorant(interaction):
 
     categoria = discord.utils.get(
         guild.categories,
-        name="𝓟𝓐𝓡𝓣𝓘𝓓𝓐𝓢 🖱️"
+        name="🔫 · 【ＶＡＬＯＲＡＮＴ】"
     )
 
     if categoria is None:
 
         await interaction.response.send_message(
-            "❌ No existe la categoría `𝓟𝓐𝓡𝓣𝓘𝓓𝓐𝓢 🖱️`.",
+            "❌ No existe la categoría `🔫 · 【ＶＡＬＯＲＡＮＴ】`.",
             ephemeral=True
         )
         return
