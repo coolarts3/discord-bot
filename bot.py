@@ -1631,6 +1631,95 @@ async def bienvenida(ctx):
     except discord.Forbidden:
         pass
 
+
+# ----------------------------
+# COMANDO !VALORANT
+# ----------------------------
+
+@bot.command(name="valorant")
+@commands.has_permissions(administrator=True)
+async def comando_valorant(ctx):
+    """Publica manualmente la última actualización de VALORANT."""
+
+    try:
+        await ctx.send("🔎 Buscando la última publicación de VALORANT...", delete_after=5)
+
+        noticias = await obtener_noticias_valorant()
+
+        if not noticias:
+            await ctx.send(
+                "❌ No he podido obtener ninguna publicación de VALORANT."
+            )
+            return
+
+        # La primera noticia será la más reciente
+        noticia = noticias[0]
+
+        embed = discord.Embed(
+            title=f"📰 {noticia.get('titulo', 'Nueva actualización de VALORANT')}",
+            description=noticia.get(
+                "descripcion",
+                "Nueva actualización publicada por VALORANT."
+            ),
+            url=noticia.get("url"),
+            color=discord.Color.red()
+        )
+
+        embed.set_author(name="VALORANT")
+
+        imagen = noticia.get("imagen")
+        if imagen:
+            embed.set_image(url=imagen)
+
+        embed.set_footer(
+            text="VALORANT • Actualizaciones del juego"
+        )
+
+        # Buscar el canal configurado
+        canal = obtener_canal_valorant()
+
+        if canal is None:
+            await ctx.send(
+                f"❌ No encuentro el canal `{VALORANT_CHANNEL_NAME}`."
+            )
+            return
+
+        # Enviar la noticia
+        await canal.send(embed=embed)
+
+        # Confirmación al administrador
+        await ctx.send(
+            f"✅ Última publicación de VALORANT enviada en {canal.mention}.",
+            delete_after=8
+        )
+
+        print(f"📰 !valorant ejecutado: {noticia.get('titulo')}")
+
+    except Exception as e:
+        print(f"❌ Error en !valorant: {e}")
+
+        await ctx.send(
+            f"❌ Ha ocurrido un error al ejecutar `!valorant`:\n"
+            f"`{type(e).__name__}: {e}`"
+        )
+
+
+@comando_valorant.error
+async def comando_valorant_error(ctx, error):
+
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(
+            "⛔ Solo los administradores pueden utilizar este comando.",
+            delete_after=5
+        )
+
+    else:
+        print(f"❌ Error del comando !valorant: {error}")
+        await ctx.send(
+            f"❌ Error en `!valorant`:\n`{error}`",
+            delete_after=10
+        )
+        
 # ----------------------------
 # INICIAR BOT
 # ----------------------------
