@@ -158,11 +158,11 @@ async def obtener_noticias_valorant():
             if href.rstrip("/") == "/es-es/news/game-updates":
                 continue
 
-            url = (
-                "https://playvalorant.com" + href
-                if href.startswith("/")
-                else href
-            )
+            # Convertir URL relativa en absoluta
+            if href.startswith("/"):
+                url = "https://playvalorant.com" + href
+            else:
+                url = href
 
             # Evitar duplicados
             if any(n["url"] == url for n in noticias):
@@ -174,29 +174,38 @@ async def obtener_noticias_valorant():
             if not titulo:
                 titulo = "Nueva actualización de VALORANT"
 
-            # Buscar imagen dentro de la tarjeta
+            # ----------------------------------------
+            # BUSCAR IMAGEN
+            # ----------------------------------------
+
             imagen = None
 
-img = enlace.find("img")
+            img = enlace.find("img")
 
-if img:
-    imagen = (
-        img.get("src")
-        or img.get("data-src")
-        or img.get("data-lazy-src")
-    )
+            if img:
+                imagen = (
+                    img.get("src")
+                    or img.get("data-src")
+                    or img.get("data-lazy-src")
+                )
 
-    if imagen:
-        if imagen.startswith("//"):
-            imagen = "https:" + imagen
+                # Convertir imágenes relativas en URLs completas
+                if imagen:
+                    if imagen.startswith("//"):
+                        imagen = "https:" + imagen
 
-        elif imagen.startswith("/"):
-            imagen = "https://playvalorant.com" + imagen
+                    elif imagen.startswith("/"):
+                        imagen = "https://playvalorant.com" + imagen
 
-        elif not imagen.startswith(("http://", "https://")):
-            imagen = None
+                    elif not imagen.startswith(
+                        ("http://", "https://")
+                    ):
+                        imagen = None
 
-            # Buscar contenedor de la noticia
+            # ----------------------------------------
+            # BUSCAR CONTENEDOR DE LA NOTICIA
+            # ----------------------------------------
+
             contenedor = enlace
 
             for _ in range(5):
@@ -216,7 +225,10 @@ if img:
                 strip=True
             )
 
-            # Intentar encontrar la descripción
+            # ----------------------------------------
+            # BUSCAR DESCRIPCIÓN
+            # ----------------------------------------
+
             descripcion = ""
 
             for tag in contenedor.find_all(
@@ -241,7 +253,7 @@ if img:
                     "por VALORANT."
                 )
 
-            # Limitar la descripción para Discord
+            # Limitar descripción para Discord
             if len(descripcion) > 500:
                 descripcion = descripcion[:497] + "..."
 
@@ -259,109 +271,6 @@ if img:
             f"❌ Error obteniendo noticias de VALORANT: {e}"
         )
         return []
-
-
-def obtener_canal_valorant():
-    for guild in bot.guilds:
-        canal = discord.utils.get(
-            guild.text_channels,
-            name=VALORANT_CHANNEL_NAME
-        )
-
-        if canal:
-            return canal
-
-    return None
-
-
-@tasks.loop(minutes=VALORANT_CHECK_MINUTES)
-async def actualizaciones_valorant():
-
-    canal = obtener_canal_valorant()
-
-    if canal is None:
-        print(
-            f"⚠️ No existe el canal "
-            f"{VALORANT_CHANNEL_NAME}"
-        )
-        return
-
-    noticias = await obtener_noticias_valorant()
-
-    if not noticias:
-        return
-
-    noticias_publicadas = cargar_noticias_valorant()
-
-    # Primera ejecución:
-    # guardar las noticias existentes sin llenar Discord
-    if not noticias_publicadas:
-
-        guardar_noticias_valorant(
-            [n["url"] for n in noticias]
-        )
-
-        print(
-            "📰 VALORANT: noticias iniciales guardadas."
-        )
-
-        return
-
-    nuevas = [
-        noticia
-        for noticia in noticias
-        if noticia["url"] not in noticias_publicadas
-    ]
-
-    if not nuevas:
-        return
-
-    for noticia in reversed(nuevas):
-
-        embed = discord.Embed(
-            title=f"📰 {noticia['titulo']}",
-            description=noticia["descripcion"],
-            url=noticia["url"],
-            color=discord.Color.red()
-        )
-
-        embed.set_author(
-            name="VALORANT"
-        )
-
-        imagen = noticia.get("imagen")
-
-        if imagen and imagen.startswith(("http://", "https://")):
-            embed.set_image(url=imagen)
-
-        embed.set_footer(
-            text="VALORANT • Actualizaciones del juego"
-        )
-
-        try:
-            await canal.send(
-                embed=embed
-            )
-
-            print(
-                f"📰 Nueva actualización VALORANT: "
-                f"{noticia['titulo']}"
-            )
-
-        except Exception as e:
-            print(
-                f"❌ Error enviando noticia VALORANT: {e}"
-            )
-
-    guardar_noticias_valorant(
-        noticias_publicadas +
-        [n["url"] for n in nuevas]
-    )
-
-
-@actualizaciones_valorant.before_loop
-async def antes_de_actualizaciones_valorant():
-    await bot.wait_until_ready()
 # -----------------------------
 # Iniciar la tarea al arrancar
 # -----------------------------
