@@ -323,13 +323,15 @@ async def on_ready():
 
     await publicar_panel_llamadas()
 
-    # Iniciar tu sistema de avisos automático
+    # Iniciar sistema de avisos automático
     if not aviso_automatico.is_running():
-    aviso_automatico.start()
+        aviso_automatico.start()
 
+    # Iniciar actualizaciones automáticas de VALORANT
     if not actualizaciones_valorant.is_running():
-    actualizaciones_valorant.start()
+        actualizaciones_valorant.start()
 
+    # Comprobar si ya había gente conectada a voz
     await comprobar_voz_al_iniciar()
 
 @bot.event
