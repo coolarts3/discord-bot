@@ -1147,9 +1147,133 @@ async def publicar_panel_llamadas():
         "✔ Panel de llamadas publicado."
     )
 
+# -------------------------------
+# BIENVENIDA / ACEPTAR NORMAS
+# -------------------------------
+
+# 🔧 CAMBIA ESTOS DOS IDs POR LOS DE TUS ROLES
+ROL_INICIAL_ID = 1437190643264000020
+ROL_VERIFICADO_ID = 1436699307108733098
+
+
+class BienvenidaView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="✅ Aceptar normas",
+        style=discord.ButtonStyle.success,
+        custom_id="aceptar_normas"
+    )
+    async def aceptar_normas(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        guild = interaction.guild
+        member = interaction.user
+
+        rol_inicial = guild.get_role(ROL_INICIAL_ID)
+        rol_verificado = guild.get_role(ROL_VERIFICADO_ID)
+
+        # Comprobar que los roles existen
+        if rol_inicial is None:
+            await interaction.response.send_message(
+                "❌ No se encontró el rol inicial.",
+                ephemeral=True
+            )
+            return
+
+        if rol_verificado is None:
+            await interaction.response.send_message(
+                "❌ No se encontró el rol de verificado.",
+                ephemeral=True
+            )
+            return
+
+        try:
+            # Quitar rol inicial
+            if rol_inicial in member.roles:
+                await member.remove_roles(
+                    rol_inicial,
+                    reason="Aceptó las normas del servidor"
+                )
+
+            # Dar rol verificado
+            if rol_verificado not in member.roles:
+                await member.add_roles(
+                    rol_verificado,
+                    reason="Aceptó las normas del servidor"
+                )
+
+            await interaction.response.send_message(
+                "✅ **Normas aceptadas.**\n"
+                "Ya tienes acceso al servidor.",
+                ephemeral=True
+            )
+
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "❌ No puedo modificar tus roles. "
+                "Comprueba que mi rol esté por encima de los roles que intento modificar.",
+                ephemeral=True
+            )
+
+        except Exception as e:
+            print(f"Error en aceptar_normas: {e}")
+
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    "❌ Ha ocurrido un error al asignarte los roles.",
+                    ephemeral=True
+                )
+
+
+# -------------------------------
+# COMANDO !BIENVENIDA
+# -------------------------------
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def bienvenida(ctx):
+    """Publica el mensaje de bienvenida y aceptación de normas."""
+
+    embed = discord.Embed(
+        title="👋 ¡Bienvenido/a al servidor!",
+        description=(
+            "Antes de comenzar, debes leer y aceptar las normas del servidor.\n\n"
+            "📜 **Normas**\n\n"
+            "1️⃣ Respeta a todos los miembros.\n"
+            "2️⃣ No hagas spam.\n"
+            "3️⃣ No compartas contenido inapropiado.\n"
+            "4️⃣ No hagas publicidad sin permiso.\n"
+            "5️⃣ Respeta las indicaciones del Staff.\n"
+            "6️⃣ Al pulsar el botón confirmas que has leído y aceptado las normas.\n\n"
+            "👇 **Pulsa el botón para aceptar las normas.**"
+        ),
+        color=discord.Color.blue()
+    )
+
+    embed.set_footer(
+        text="Al aceptar las normas recibirás acceso al servidor."
+    )
+
+    await ctx.send(
+        embed=embed,
+        view=BienvenidaView()
+    )
+
+    # Borra el comando !bienvenida
+    try:
+        await ctx.message.delete()
+    except discord.Forbidden:
+        pass
+
 # ----------------------------
 # INICIAR BOT
 # ----------------------------
+bot.add_view(BienvenidaView())
+
 bot.run(os.getenv("DISCORD_TOKEN"))
 
 
