@@ -82,20 +82,29 @@ async def on_message(message):
 # -----------------------------
 # Tarea que envía avisos solo si hubo actividad
 # -----------------------------
-@tasks.loop(seconds=30)
+@tasks.loop(hours=1)
 async def aviso_automatico():
     global last_activity
+
+    # Si nunca ha habido actividad, no hacer nada
     if last_activity is None:
-        return  # nada de actividad aún
-    tiempo_transcurrido = (datetime.utcnow() - last_activity).total_seconds() / 60
-    if tiempo_transcurrido <= TIEMPO_ESPERA:  # solo si hubo actividad reciente
-        canal = bot.get_channel(CANAL_AVISO_ID)
-        if canal:
-            try:
-                await canal.send("📢 ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil!")
-                print(f"[{datetime.utcnow()}] Aviso enviado en {canal.name}")
-            except Exception as e:
-                print(f"⚠️ Error al enviar aviso: {e}")
+        return
+
+    canal = bot.get_channel(CANAL_AVISO_ID)
+
+    if canal:
+        try:
+            await canal.send(
+                "📢 ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil!"
+            )
+
+            print(
+                f"[{datetime.utcnow()}] "
+                f"Aviso enviado en {canal.name}"
+            )
+
+        except Exception as e:
+            print(f"⚠️ Error al enviar aviso: {e}")
 
 # ============================================================
 # 📰 NOTICIAS / ACTUALIZACIONES DE VALORANT
@@ -146,6 +155,18 @@ async def obtener_noticias_valorant():
         soup = BeautifulSoup(html, "html.parser")
 
         noticias = []
+
+        def obtener_canal_valorant():
+    for guild in bot.guilds:
+        canal = discord.utils.get(
+            guild.text_channels,
+            name=VALORANT_CHANNEL_NAME
+        )
+
+        if canal:
+            return canal
+
+    return None
 
         # Buscar los enlaces de las actualizaciones
         for enlace in soup.find_all("a", href=True):
