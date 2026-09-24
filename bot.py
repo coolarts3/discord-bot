@@ -80,7 +80,7 @@ async def aviso_automatico():
 # ============================================================
 
 VALORANT_NEWS_URL = "https://playvalorant.com/es-es/news/game-updates/"
-VALORANT_CHANNEL_NAME = "📰 │ 𝙑𝘼𝙇𝙊𝙍𝘼𝙉𝙏-𝙉𝙀𝙒𝙎"
+VALORANT_CHANNEL_NAME = "📰│𝙑𝘼𝙇𝙊𝙍𝘼𝙉𝙏-𝙉𝙀𝙒𝙎"
 VALORANT_CHECK_MINUTES = 10
 VALORANT_NEWS_FILE = "valorant_news.json"
 
