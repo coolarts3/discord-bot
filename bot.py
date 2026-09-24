@@ -364,36 +364,46 @@ class GamesButtons(discord.ui.View):
 # -------------------------------
 @bot.command()
 async def roles(ctx):
-    # Borrar el comando del canal público
-    await ctx.message.delete()
+    try:
+        await ctx.message.delete()
+    except discord.Forbidden:
+        pass
 
-    # Crear la vista principal
-    view = RoleSelectView()
+    # Vista de selección
+    view = RoleSelectView(ctx.author)
 
-    # Crear canal temporal privado directamente al iniciar
+    # 🔒 Canal privado SOLO para quien ejecutó !roles
     overwrites = {
         ctx.guild.default_role: discord.PermissionOverwrite(
-            view_channel=True,
-            send_messages=False
+            view_channel=False
         ),
-        ctx.guild.me: discord.PermissionOverwrite(
+        ctx.author: discord.PermissionOverwrite(
             view_channel=True,
-            send_messages=True,
-            embed_links=True
+            send_messages=True
         )
     }
-    category = discord.utils.get(ctx.guild.categories, name="🎮 Roles")
+
+    category = discord.utils.get(
+        ctx.guild.categories,
+        name="🎮 Roles"
+    )
+
     if not category:
         category = await ctx.guild.create_category("🎮 Roles")
+
     temp_channel = await ctx.guild.create_text_channel(
-        name=f"{ctx.author.name}-roles", overwrites=overwrites, category=category
+        name=f"{ctx.author.name}-roles",
+        overwrites=overwrites,
+        category=category
     )
+
     view.temp_channel = temp_channel
 
-    # Enviar menú de botones en el canal privado
-    await temp_channel.send(f"🎮 Hola {ctx.author.mention}, pulsa los botones para seleccionar tus roles y juegos:", view=view)
-
-
+    await temp_channel.send(
+        f"🎮 Hola {ctx.author.mention}, "
+        "pulsa los botones para seleccionar tus roles y juegos:",
+        view=view
+    )
 # ----------------------------
 # CREAR CANAL DE VOZ PARTIDA
 # ----------------------------
