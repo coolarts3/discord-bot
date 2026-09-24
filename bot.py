@@ -177,25 +177,24 @@ async def obtener_noticias_valorant():
             # Buscar imagen dentro de la tarjeta
             imagen = None
 
-            img = enlace.find("img")
+img = enlace.find("img")
 
-           if img:
-                imagen = (
-                    img.get("src")
-                    or img.get("data-src")
-                    or img.get("data-lazy-src")
-                )
+if img:
+    imagen = (
+        img.get("src")
+        or img.get("data-src")
+        or img.get("data-lazy-src")
+    )
 
-                # Convertir imágenes relativas en URLs completas
-                if imagen:
-                    if imagen.startswith("//"):
-                        imagen = "https:" + imagen
+    if imagen:
+        if imagen.startswith("//"):
+            imagen = "https:" + imagen
 
-                    elif imagen.startswith("/"):
-                        imagen = "https://playvalorant.com" + imagen
+        elif imagen.startswith("/"):
+            imagen = "https://playvalorant.com" + imagen
 
-                    elif not imagen.startswith(("http://", "https://")):
-                        imagen = None
+        elif not imagen.startswith(("http://", "https://")):
+            imagen = None
 
             # Buscar contenedor de la noticia
             contenedor = enlace
