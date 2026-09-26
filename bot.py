@@ -97,7 +97,9 @@ async def aviso_automatico():
     if canal:
         try:
             await canal.send(
-                "📢 ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil!"
+                "📢 ¡Recuerda usar `!roles` para asignarte tus roles y configurar tu perfil!",
+                delete_after=300
+                
             )
 
             print(
